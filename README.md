@@ -14,7 +14,7 @@ Per-app volume, boost, and output routing — from a tiny native menu bar app.</
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license"></a>
 </p>
 
-SoundSwipe is a free, open-source macOS menu bar app for output and input control, individual app volumes, volume boost, and per-app audio routing — an alternative in the spirit of [Background Music](https://github.com/kyleneideck/BackgroundMusic) and [SoundSource](https://rogueamoeba.com/soundsource/). It is built with SwiftUI, AppKit, Core Audio, and a tiny C audio kernel: a ~2 MB app with no Electron, package dependencies, account, telemetry, or network access.
+SoundSwipe is a free, open-source macOS menu bar app for output and input control, individual app volumes, volume boost, and per-app audio routing — an alternative in the spirit of [Background Music](https://github.com/kyleneideck/BackgroundMusic) and [SoundSource](https://rogueamoeba.com/soundsource/). It is built with SwiftUI, AppKit, Core Audio, and a tiny C audio kernel: a ~3 MB universal app with no Electron, package dependencies, account, telemetry, or network access.
 
 > **Preview:** device controls and the interface are implemented and tested. Per-app mixing uses Apple’s Core Audio process taps and still needs wider validation across hardware and macOS releases. Preview builds are not yet notarized.
 

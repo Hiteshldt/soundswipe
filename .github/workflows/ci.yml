@@ -9,14 +9,14 @@ jobs:
   test-and-build:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Toolchain
         run: swift --version
       - name: Test
         run: ./scripts/test.sh
       - name: Build universal preview
         run: ./scripts/build.sh --universal
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: SoundSwipe-preview-universal
           path: dist/SoundSwipe.zip

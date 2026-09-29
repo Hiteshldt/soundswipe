@@ -1,0 +1,24 @@
+name: Release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        run: ./scripts/test.sh
+      - name: Build universal app
+        run: ./scripts/build.sh --universal
+      - name: Checksum
+        run: cd dist && shasum -a 256 SoundSwipe.zip > SoundSwipe.zip.sha256
+      - name: Publish pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/SoundSwipe.zip dist/SoundSwipe.zip.sha256 \
+            --prerelease --title "SoundSwipe ${GITHUB_REF_NAME#v} (preview)" \
+            --notes "Preview build: universal (Apple Silicon + Intel), ad-hoc signed, not notarized. After moving SoundSwipe.app to Applications, open it once, then choose **Open Anyway** in System Settings → Privacy & Security. See [CHANGELOG.md](https://github.com/Hiteshldt/soundswipe/blob/main/CHANGELOG.md)."

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleName</key><string>SoundSwipe</string>
+<key>CFBundleDisplayName</key><string>SoundSwipe</string>
+<key>CFBundleIdentifier</key><string>app.soundswipe.SoundSwipe</string>
+<key>CFBundleExecutable</key><string>SoundSwipe</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleShortVersionString</key><string>0.2.0</string>
+<key>CFBundleVersion</key><string>2</string>
+<key>CFBundleIconFile</key><string>AppIcon</string>
+<key>LSMinimumSystemVersion</key><string>14.2</string>
+<key>LSUIElement</key><true/>
+<key>NSHighResolutionCapable</key><true/>
+<key>NSAudioCaptureUsageDescription</key><string>SoundSwipe processes app audio locally so you can adjust individual volumes and route apps to different speakers. Audio is never uploaded.</string>
+<key>NSHumanReadableCopyright</key><string>Copyright © 2026 Hitesh Gupta. MIT License.</string>
+<key>DeveloperGitHub</key><string>https://github.com/Hiteshldt</string>
+<key>DeveloperTwitter</key><string>https://x.com/hit3sh3d</string>
+<key>RepositoryURL</key><string>https://github.com/Hiteshldt/soundswipe</string>
+</dict></plist>

@@ -1,0 +1,26 @@
+name: Bug report
+description: Report an audio or interface problem
+body:
+  - type: input
+    id: environment
+    attributes:
+      label: macOS version and Mac architecture
+      placeholder: macOS version, Apple Silicon or Intel
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Audio device and sample rate
+      description: Include Bluetooth/call mode if relevant. No serial numbers.
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps and expected versus actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Relevant diagnostics
+      description: Remove personal information. Do not attach private audio.

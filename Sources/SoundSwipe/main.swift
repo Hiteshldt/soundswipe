@@ -28,7 +28,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             self.scrollVolume(event); return nil
         }
         popover.behavior = .transient; popover.animates = true; popover.delegate = self
-        popover.contentViewController = NSHostingController(rootView: PanelView(audio: audio, preferences: preferences, openSettings: { [weak self] in self?.openSettings() }))
+        let panel = NSHostingController(rootView: PanelView(audio: audio, preferences: preferences, openSettings: { [weak self] in self?.openSettings() }))
+        // The popover follows SwiftUI's size as apps appear, disappear, or expand.
+        panel.sizingOptions = [.preferredContentSize]
+        popover.contentViewController = panel
         shortcuts.perform = { [weak self] action in
             guard let self else { return }
             switch action {
@@ -37,23 +40,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             case .quieter: if let v = self.audio.outputVolume { self.audio.setOutputVolume(v - 0.05) }
             case .louder: if let v = self.audio.outputVolume { self.audio.setOutputVolume(v + 0.05) }
             case .nextOutput: self.audio.nextOutput()
+            case .micMute: self.audio.toggleInputMute()
             }
         }
         shortcuts.register(preferences.shortcuts)
         if CommandLine.arguments.contains("--show") { togglePanel() }
         if let index = CommandLine.arguments.firstIndex(of: "--snapshot"), CommandLine.arguments.count > index + 1 {
-            let path = CommandLine.arguments[index + 1]
-            let host = NSHostingView(rootView: PanelView(audio: audio, preferences: preferences, openSettings: {}))
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 368, height: 560), styleMask: [.borderless], backing: .buffered, defer: false)
-            window.contentView = host; window.orderFront(nil)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                host.layoutSubtreeIfNeeded()
-                if let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) {
-                    host.cacheDisplay(in: host.bounds, to: bitmap)
-                    if let data = bitmap.representation(using: .png, properties: [:]) { try? data.write(to: URL(fileURLWithPath: path)) }
-                }
-                NSApp.terminate(nil)
+            snapshot(to: CommandLine.arguments[index + 1])
+        }
+    }
+    /// Renders the real panel (or a Settings tab with `--settings N`) to a PNG without Screen Recording permission. `--light` forces light mode.
+    private func snapshot(to path: String) {
+        let arguments = CommandLine.arguments
+        if arguments.contains("--light") { NSApp.appearance = NSAppearance(named: .aqua) }
+        if arguments.contains("--dark") { NSApp.appearance = NSAppearance(named: .darkAqua) }
+        audio.setPanelVisible(true)
+        if let expand = arguments.firstIndex(of: "--expand").map({ arguments[$0 + 1] }) { PanelView.snapshotExpanded = expand }
+        let host: NSView
+        if let tab = arguments.firstIndex(of: "--settings").flatMap({ Int(arguments[$0 + 1]) }) {
+            host = NSHostingView(rootView: SettingsView(audio: audio, preferences: preferences, shortcuts: shortcuts, initialTab: tab))
+        } else {
+            host = NSHostingView(rootView: PanelView(audio: audio, preferences: preferences, openSettings: {}))
+        }
+        let window = NSWindow(contentRect: NSRect(origin: .zero, size: host.fittingSize), styleMask: [.borderless], backing: .buffered, defer: false)
+        window.contentView = host; window.orderFront(nil)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            window.setContentSize(host.fittingSize); host.layoutSubtreeIfNeeded()
+            if let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) {
+                host.cacheDisplay(in: host.bounds, to: bitmap)
+                if let data = bitmap.representation(using: .png, properties: [:]) { try? data.write(to: URL(fileURLWithPath: path)) }
             }
+            NSApp.terminate(nil)
         }
     }
     private func updateIcon(muted: Bool) {
@@ -83,7 +100,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             outputs.submenu?.addItem(entry)
         }
         menu.addItem(outputs)
-        menu.addItem(withTitle: audio.outputMuted ? "Unmute" : "Mute", action: #selector(toggleMute), keyEquivalent: "").target = self
+        menu.addItem(withTitle: audio.outputMuted ? "Unmute Output" : "Mute Output", action: #selector(toggleMute), keyEquivalent: "").target = self
+        menu.addItem(withTitle: audio.inputMuted ? "Unmute Microphone" : "Mute Microphone", action: #selector(toggleMicrophone), keyEquivalent: "").target = self
         menu.addItem(withTitle: audio.mixingEnabled ? "Turn Off Mix Apps" : "Turn On Mix Apps", action: #selector(toggleMixing), keyEquivalent: "").target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: "Settings…", action: #selector(showSettings), keyEquivalent: ",").target = self
@@ -94,10 +112,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
     @objc private func chooseOutput(_ sender: NSMenuItem) { audio.selectOutput(AudioObjectID(sender.tag)) }
     @objc private func toggleMute() { audio.toggleMute() }
+    @objc private func toggleMicrophone() { audio.toggleInputMute() }
     @objc private func toggleMixing() { audio.setMixing(!audio.mixingEnabled) }
     @objc private func showSettings() { openSettings() }
-    func popoverDidShow(_ notification: Notification) { audio.setMetering(true) }
-    func popoverDidClose(_ notification: Notification) { audio.setMetering(false) }
+    func popoverDidShow(_ notification: Notification) { audio.setPanelVisible(true) }
+    func popoverDidClose(_ notification: Notification) { audio.setPanelVisible(false) }
     @objc func togglePanel() {
         if popover.isShown { popover.performClose(nil) }
         else if let button = item.button {

@@ -5,7 +5,7 @@
 <h1 align="center">SoundSwipe</h1>
 
 <p align="center"><b>A little more control over your Mac’s audio.</b><br>
-Per-app volume, boost, and output routing — from a tiny native menu bar app.</p>
+Per-app volume, EQ, boost, and output routing — from a tiny native menu bar app.</p>
 
 <p align="center">
   <a href="https://github.com/Hiteshldt/soundswipe/actions/workflows/ci.yml"><img src="https://github.com/Hiteshldt/soundswipe/actions/workflows/ci.yml/badge.svg" alt="Build"></a>
@@ -23,15 +23,18 @@ SoundSwipe is a free, open-source macOS menu bar app for output and input contro
 ## Features
 
 - **Menu bar panel** with native materials, light/dark appearance, and VoiceOver labels.
-- **Output and microphone switching**, output volume, mute, and input gain — with a clear message for fixed-volume devices.
+- **See which apps are using audio.** Only apps that are playing sound or using the microphone appear, with a live *Playing* / *Mic* status. Helper processes (like a browser's audio helper) are grouped under their app.
+- **Microphone in-use indicator** showing which apps are listening, plus one-click microphone mute (and a shortcut for it).
+- **Output and microphone switching**, output volume, mute, and input level — with a clear message for fixed-volume devices.
 - **Per-app volume from 0–200%.** Boost above 100% passes through a soft limiter so it never hard-clips; at or below 100% audio is untouched.
+- **Per-app EQ and balance** — bass, mid, and treble (±12 dB) with presets like Bass Boost and Voice Clarity, plus left/right balance.
 - **Per-app output routing** — send music to headphones while calls stay on speakers. No driver or kernel extension to install.
 - **Live level meters** for every adjusted app (only while the panel is open).
 - **Scroll on the menu bar icon** to change volume; the icon shows when output is muted. **Right-click** for a quick menu with output devices, mute, and Mix apps.
-- **Global keyboard shortcuts** you record yourself: show panel, mute, volume up/down, next output. No Accessibility permission needed.
+- **Global keyboard shortcuts** you record yourself: show panel, mute, volume up/down, next output, mute microphone. No Accessibility permission needed.
 - **Remembers your mix** per app; disconnected routes fall back to the current output. Optionally turns mixing on at launch, and restores it after sleep.
 - **Launch at login.**
-- **Lightweight by design:** Core Audio notifications instead of polling, meters that stop when the panel closes, and routes only for apps you have changed.
+- **Lightweight by design:** ~0% CPU and ~14 MB memory when idle. Activity checks and meters run only while the panel is open, and audio routes exist only for apps you have changed.
 
 ## Install
 
@@ -43,10 +46,10 @@ Requires **macOS 14.2 or newer**, Apple Silicon or Intel.
 ## Use
 
 1. Click the waveform in the menu bar. Pick a speaker/headphone or microphone.
-2. Turn on **Mix apps**. Play sound in an app, then drag its slider or choose an output from its row.
-3. Allow system-audio access when macOS asks. Audio is processed locally and never saved or sent anywhere.
-4. Open the gear for shortcuts, launch at login, and mix-at-launch.
-5. Turn off Mix apps to hand every app back to normal macOS playback instantly.
+2. Play sound in any app — it appears under **Apps**. Drag its slider, pick an output from its speaker menu, or open the EQ button for bass/mid/treble and balance.
+3. Allow system-audio access when macOS asks (first adjustment only). Audio is processed locally and never saved or sent anywhere.
+4. Open the gear for shortcuts, launch at login, and turning mixing on at launch.
+5. Turn off **Mix** to hand every app back to normal macOS playback instantly.
 
 System controls do not need any permission. Changing the system output changes the default device; apps with their own in-app route may keep using it.
 
@@ -64,8 +67,9 @@ Needs Swift 5.10+ (Xcode 16+ or the Command Line Tools). You can also open `Pack
 
 ## Current limits
 
-- Mixing handles stereo, 32-bit float PCM routes; other layouts stop mixing and report an error. No EQ or recording yet.
-- Browser/helper audio processes may appear under the identity macOS reports; SoundSwipe does not guess process ownership.
+- Mixing handles stereo, 32-bit float PCM routes; other layouts stop mixing and report an error. No recording or Audio Unit plug-ins yet.
+- Microphone use is shown per app, but macOS does not allow per-app microphone volume; mute and level apply to the whole input device.
+- Helper processes are grouped only through their verified parent app; system services (for example WebKit media) keep the name macOS reports.
 - Some protected content cannot be captured, and conferencing apps or Bluetooth call profiles need more hardware testing.
 - SoundSwipe is a menu bar app, not a Control Center module. No automatic updater yet.
 

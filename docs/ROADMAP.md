@@ -13,8 +13,6 @@
 
 - Auto-pause/resume for supported music players, with explicit Automation consent and ownership tracking so manually paused music is never resumed unexpectedly.
 - User-initiated system audio recording with visible recording state and explicit save destination.
-- Optional per-app EQ.
-- Reliable browser helper grouping using verified process ancestry.
 - More channel layouts, device-specific sample-rate coverage, and audio profiles.
 
 These features are not represented as working controls in the current interface.

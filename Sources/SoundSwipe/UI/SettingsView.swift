@@ -6,72 +6,124 @@ struct SettingsView: View {
     @ObservedObject var audio: AudioController
     @ObservedObject var preferences: Preferences
     @ObservedObject var shortcuts: ShortcutManager
+    @State private var tab: Int
     @State private var recording: ShortcutAction?
     @State private var monitor: Any?
     @State private var message: String?
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+
+    init(audio: AudioController, preferences: Preferences, shortcuts: ShortcutManager, initialTab: Int = 0) {
+        self.audio = audio; self.preferences = preferences; self.shortcuts = shortcuts
+        _tab = State(initialValue: initialTab)
+    }
+
     var body: some View {
-        TabView {
-            Form {
-                Section {
-                    Toggle("Open SoundSwipe at login", isOn: Binding(get: { launchAtLogin }, set: { value in
-                        do {
-                            if value { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
-                            launchAtLogin = SMAppService.mainApp.status == .enabled
-                            if SMAppService.mainApp.status == .requiresApproval { message = "Allow SoundSwipe in System Settings → General → Login Items." }
-                        } catch { message = error.localizedDescription }
-                    }))
-                    Text("SoundSwipe lives in your menu bar. Drag the app to Applications before enabling launch at login.").font(.caption).foregroundStyle(.secondary)
-                } header: { Text("General") }
-                Section {
-                    Toggle("Turn on Mix apps when SoundSwipe opens", isOn: $preferences.mixAtLaunch)
-                    Text("Mixing runs only for apps with an adjusted volume or a custom output. Turn off Mix apps to release every route immediately.").font(.callout)
-                    Button("Reset all application volumes and routes") { audio.resetMixes() }
-                    Button("Open audio permissions") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!) }
-                } header: { Text("Audio") }
-                if let message { Text(message).font(.caption).foregroundStyle(.orange) }
-            }.formStyle(.grouped).tabItem { Label("General", systemImage: "switch.2") }
-            Form {
-                Section {
-                    ForEach(ShortcutAction.allCases) { action in
-                        HStack {
-                            Text(action.title)
-                            Spacer()
-                            Button(recording == action ? "Press shortcut…" : preferences.shortcuts[action.rawValue]?.label ?? "Record shortcut") { beginRecording(action) }
-                                .frame(minWidth: 145).accessibilityLabel("Record shortcut for \(action.title)")
-                            Button { preferences.shortcuts.removeValue(forKey: action.rawValue); shortcuts.register(preferences.shortcuts) } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.buttonStyle(.plain).disabled(recording != nil || preferences.shortcuts[action.rawValue] == nil).accessibilityLabel("Clear shortcut for \(action.title)")
+        TabView(selection: $tab) {
+            general.tabItem { Label("General", systemImage: "gearshape") }.tag(0)
+            shortcutList.tabItem { Label("Shortcuts", systemImage: "keyboard") }.tag(1)
+            about.tabItem { Label("About", systemImage: "info.circle") }.tag(2)
+        }
+        .frame(width: 500, height: 440)
+        .onDisappear { endRecording() }
+    }
+
+    private var general: some View {
+        Form {
+            Section("General") {
+                Toggle(isOn: Binding(get: { launchAtLogin }, set: setLaunchAtLogin)) {
+                    Text("Open SoundSwipe at login")
+                    Text("Move SoundSwipe to Applications first.")
+                }
+            }
+            Section("Mixing") {
+                Toggle(isOn: $preferences.mixAtLaunch) {
+                    Text("Turn on mixing when SoundSwipe opens")
+                    Text("Restores your per-app volumes, EQ, and outputs automatically.")
+                }
+                LabeledContent {
+                    Button("Reset All") { audio.resetMixes() }
+                } label: {
+                    Text("Per-app settings")
+                    Text("Clears every saved volume, EQ, balance, and output.")
+                }
+                LabeledContent {
+                    Button("Open…") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!) }
+                } label: {
+                    Text("System audio access")
+                    Text("Required for per-app control. Audio never leaves your Mac.")
+                }
+            }
+            if let message { Text(message).font(.callout).foregroundStyle(.orange) }
+        }.formStyle(.grouped)
+    }
+
+    private var shortcutList: some View {
+        Form {
+            Section {
+                ForEach(ShortcutAction.allCases) { action in
+                    LabeledContent(action.title) {
+                        HStack(spacing: 6) {
+                            Button(recording == action ? "Type shortcut…" : preferences.shortcuts[action.rawValue]?.label ?? "Record") { beginRecording(action) }
+                                .frame(minWidth: 120).monospacedDigit().accessibilityLabel("Record shortcut for \(action.title)")
+                            Button { preferences.shortcuts.removeValue(forKey: action.rawValue); shortcuts.register(preferences.shortcuts) } label: {
+                                Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                            }.buttonStyle(.plain)
+                                .opacity(preferences.shortcuts[action.rawValue] == nil ? 0 : 1)
+                                .disabled(recording != nil || preferences.shortcuts[action.rawValue] == nil)
+                                .accessibilityLabel("Clear shortcut for \(action.title)")
                         }
                     }
-                } header: { Text("Global shortcuts") }
-                Text("Use Command, Control, or Option with a key. Shortcuts work while other apps are open. Escape cancels recording. No Accessibility permission required.").font(.caption).foregroundStyle(.secondary)
-                if let message { Text(message).font(.caption).foregroundStyle(.orange) }
-                if let error = shortcuts.error { Text(error).font(.caption).foregroundStyle(.orange) }
-            }.formStyle(.grouped).tabItem { Label("Shortcuts", systemImage: "keyboard") }
-            VStack(spacing: 15) {
-                Image(systemName: "waveform.circle.fill").font(.system(size: 64)).foregroundStyle(.blue.gradient)
-                Text("SoundSwipe").font(.system(size: 26, weight: .semibold))
-                Text("Small app. Sound in your hands.").foregroundStyle(.secondary)
-                Text("Version \(AppInfo.version) · Preview").font(.caption).foregroundStyle(.secondary)
-                Text("Native macOS audio control. Open source under the MIT license.\nNo analytics, accounts, or network service.").font(.callout).multilineTextAlignment(.center)
-                Divider().padding(.horizontal, 45)
-                Text("Made by Hitesh Gupta").font(.caption).foregroundStyle(.secondary)
-                HStack(spacing: 18) {
-                    if let url = Preferences.profileURL(preferences.github, hosts: ["github.com", "www.github.com"]) { Link("GitHub", destination: url) }
-                    if let url = Preferences.profileURL(preferences.twitter, hosts: ["x.com", "twitter.com", "www.x.com", "www.twitter.com"]) { Link("X", destination: url) }
-                    if let url = AppInfo.repository { Link("Source code", destination: url) }
-                }.font(.caption)
-                Text("Inspired by Background Music and SoundSource.\nAn independent project; not affiliated with either.").font(.system(size: 10)).foregroundStyle(.tertiary).multilineTextAlignment(.center)
-            }.padding(28).frame(maxWidth: .infinity, maxHeight: .infinity).tabItem { Label("About", systemImage: "info.circle") }
-        }.padding(12).frame(width: 560, height: 430)
-            .onDisappear { endRecording() }
+                }
+            } header: { Text("Global shortcuts") } footer: {
+                Text("Use ⌘, ⌃, or ⌥ with a key. Shortcuts work in any app. Esc cancels. No Accessibility permission needed.")
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+            if let message { Text(message).font(.callout).foregroundStyle(.orange) }
+            if let error = shortcuts.error { Text(error).font(.callout).foregroundStyle(.orange) }
+        }.formStyle(.grouped)
+    }
+
+    private var about: some View {
+        VStack(spacing: 10) {
+            Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 72, height: 72)
+            Text("SoundSwipe").font(.system(size: 22, weight: .semibold))
+            Text("Version \(AppInfo.version) · Preview").font(.callout).foregroundStyle(.secondary)
+            Text("Per-app volume, EQ, and routing for your Mac.\nFree and open source under the MIT license. No analytics or network access.")
+                .font(.callout).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).padding(.top, 4)
+            Spacer().frame(height: 6)
+            HStack(spacing: 14) {
+                if let url = AppInfo.repository { Link("Source Code", destination: url) }
+                if let url = AppInfo.repository?.appendingPathComponent("issues") { Link("Report an Issue", destination: url) }
+            }.font(.callout)
+            Spacer()
+            VStack(spacing: 4) {
+                HStack(spacing: 6) {
+                    Text("Made by Hitesh Gupta")
+                    if let url = Preferences.profileURL(preferences.github, hosts: ["github.com", "www.github.com"]) { Text("·"); Link("GitHub", destination: url) }
+                    if let url = Preferences.profileURL(preferences.twitter, hosts: ["x.com", "twitter.com", "www.x.com", "www.twitter.com"]) { Text("·"); Link("X", destination: url) }
+                }
+                Text("Inspired by Background Music and SoundSource. Not affiliated with either.").foregroundStyle(.tertiary)
+            }.font(.caption).foregroundStyle(.secondary)
+        }.padding(24).frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func setLaunchAtLogin(_ value: Bool) {
+        do {
+            if value { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
+            launchAtLogin = SMAppService.mainApp.status == .enabled
+            message = SMAppService.mainApp.status == .requiresApproval ? "Allow SoundSwipe in System Settings → General → Login Items." : nil
+        } catch { message = error.localizedDescription }
     }
     private func beginRecording(_ action: ShortcutAction) {
         endRecording(); recording = action; message = nil; shortcuts.clear()
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             if event.keyCode == 53 { endRecording(); return nil }
-            guard let binding = ShortcutManager.binding(from: event) else { message = "Include Command, Control, or Option."; return nil }
-            if preferences.shortcuts.contains(where: { $0.key != action.rawValue && $0.value.keyCode == binding.keyCode && $0.value.modifiers == binding.modifiers }) { message = "That shortcut is assigned to another action."; return nil }
+            guard let binding = ShortcutManager.binding(from: event) else { message = "Include ⌘, ⌃, or ⌥."; return nil }
+            if preferences.shortcuts.contains(where: { $0.key != action.rawValue && $0.value.keyCode == binding.keyCode && $0.value.modifiers == binding.modifiers }) {
+                message = "That shortcut is already used by another action."; return nil
+            }
             preferences.shortcuts[action.rawValue] = binding
+            message = nil
             endRecording(); return nil
         }
     }

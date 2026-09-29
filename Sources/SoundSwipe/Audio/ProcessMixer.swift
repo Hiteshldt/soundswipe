@@ -2,31 +2,6 @@ import AppKit
 import CoreAudio
 import AudioDSP
 
-struct AudioApplication: Identifiable, Equatable {
-    let id: String
-    let name: String
-    let processIDs: [AudioObjectID]
-    let icon: NSImage?
-    static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id && lhs.processIDs == rhs.processIDs }
-    static func discover() -> [AudioApplication] {
-        var groups: [String: (String, [AudioObjectID], NSImage?)] = [:]
-        for process in Hardware.list(Hardware.system, kAudioHardwarePropertyProcessObjectList) {
-            let pid = Hardware.read(process, kAudioProcessPropertyPID, default: pid_t(0))
-            guard pid != getpid(), pid > 0 else { continue }
-            let bundle = Hardware.string(process, kAudioProcessPropertyBundleID)
-            let running = NSRunningApplication(processIdentifier: pid)
-            // Keep helper processes visible under their reported identity instead of
-            // guessing ownership and accidentally taking control of unrelated audio.
-            let key = bundle.isEmpty ? "pid:\(pid)" : bundle
-            let name = running?.localizedName ?? (bundle.isEmpty ? "Audio process \(pid)" : bundle)
-            if groups[key] != nil { groups[key]!.1.append(process) }
-            else { groups[key] = (name, [process], running?.icon) }
-        }
-        return groups.map { AudioApplication(id: $0.key, name: $0.value.0, processIDs: $0.value.1.sorted(), icon: $0.value.2) }
-            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
-    }
-}
-
 @available(macOS 14.2, *)
 final class ProcessMixer {
     private var tap: AudioObjectID = 0
@@ -38,11 +13,11 @@ final class ProcessMixer {
     var peak: Float { state.map(SWMixerPeak) ?? 0 }
     var formatFailed: Bool { state.map(SWMixerFormatFailed) ?? false }
 
-    init(application: AudioApplication, output: AudioDevice, gain: Float) throws {
+    init(application: AudioApplication, output: AudioDevice, mix: AppMix) throws {
         processIDs = application.processIDs; outputUID = output.uid
         do {
             guard let state = SWMixerCreate() else { throw AudioFailure(operation: "Allocate mixer", status: -108) }
-            self.state = state; SWMixerSetGain(state, gain)
+            self.state = state; apply(mix)
             let description = CATapDescription(stereoMixdownOfProcesses: processIDs)
             description.name = "SoundSwipe · \(application.name)"
             description.isPrivate = true
@@ -71,6 +46,7 @@ final class ProcessMixer {
                 }
                 guard channels == 2 else { throw AudioFailure(operation: "Application mixing currently requires a stereo device", status: kAudioHardwareUnsupportedOperationError) }
             }
+            refreshSampleRate()
             try Hardware.check(AudioDeviceCreateIOProcID(aggregate, SWMixerRender, UnsafeMutableRawPointer(state), &io), "Prepare audio route")
             try Hardware.check(AudioDeviceStart(aggregate, io), "Start audio route")
         } catch { stop(); throw error }
@@ -78,7 +54,17 @@ final class ProcessMixer {
     private static func isFloatPCM(_ f: AudioStreamBasicDescription) -> Bool {
         f.mFormatID == kAudioFormatLinearPCM && f.mBitsPerChannel == 32 && f.mFormatFlags & kAudioFormatFlagIsFloat != 0 && f.mFormatFlags & kAudioFormatFlagIsBigEndian == 0
     }
-    func setGain(_ gain: Float) { if let state { SWMixerSetGain(state, gain) } }
+    func apply(_ mix: AppMix) {
+        guard let state else { return }
+        SWMixerSetGain(state, mix.effectiveGain)
+        SWMixerSetBalance(state, mix.balance)
+        SWMixerSetEQ(state, mix.eq[0], mix.eq[1], mix.eq[2])
+    }
+    /// EQ coefficients depend on the device rate, which can change while routing (for example Bluetooth profile switches).
+    func refreshSampleRate() {
+        guard let state, aggregate != 0 else { return }
+        SWMixerSetSampleRate(state, Hardware.read(aggregate, kAudioDevicePropertyNominalSampleRate, default: Float64(48000)))
+    }
     func stop() {
         if let io, aggregate != 0 { AudioDeviceStop(aggregate, io); AudioDeviceDestroyIOProcID(aggregate, io) }
         io = nil

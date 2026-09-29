@@ -85,6 +85,54 @@ struct SoundSwipeTests {
         #expect(output[1] == -output[0] && output[7] == -output[6])
         #expect(SWMixerPeak(state) == abs(output[6]))
     }
+    @Test func testLegacyMixDecodesWithDefaults() throws {
+        let legacy = #"{"volume":0.5,"muted":true,"outputUID":"usb"}"#.data(using: .utf8)!
+        let mix = try JSONDecoder().decode(AppMix.self, from: legacy)
+        #expect(mix.volume == 0.5 && mix.muted && mix.outputUID == "usb")
+        #expect(mix.eq == [0, 0, 0] && mix.balance == 0)
+        var eq = AppMix()
+        eq.eq = EQPreset.bass.bands
+        #expect(eq.needsMixing && eq.eqActive)
+        #expect(EQPreset.matching(eq.eq) == .bass)
+        eq.eq = [0, 0, 0]; eq.balance = -0.5
+        #expect(eq.needsMixing && !eq.eqActive)
+    }
+    @Test func testNamesDropInvisibleCharacters() {
+        #expect(AudioApplication.clean("\u{200E}WhatsApp") == "WhatsApp")
+        #expect(AudioApplication.clean("  Music\u{0007} ") == "Music")
+        #expect(AudioApplication.clean("\u{200F}") == "Unknown app")
+    }
+    @Test func testDSPBalanceSilencesOneSide() {
+        let state = SWMixerCreate()!
+        defer { SWMixerDestroy(state) }
+        SWMixerSetBalance(state, -1)
+        let output = render(state, input: Array(repeating: 0.5, count: 20000))
+        #expect(abs(output[output.count - 2] - 0.5) < 0.0001)
+        #expect(abs(output[output.count - 1]) < 0.0001)
+    }
+    @Test func testDSPEQShapesFrequencies() {
+        let bass = sineLevel(frequency: 50, eq: (12, 0, 0))
+        let flat = sineLevel(frequency: 50, eq: (0, 0, 0))
+        let trebleOnBass = sineLevel(frequency: 50, eq: (0, 0, 12))
+        let trebleOnHigh = sineLevel(frequency: 12000, eq: (0, 0, -12))
+        #expect(abs(flat - 0.25) < 0.001)
+        #expect(bass > 0.25 * 3)            // +12 dB is 4x; the limiter keeps it below 1.0.
+        #expect(bass < 1)
+        #expect(abs(trebleOnBass - 0.25) < 0.02)
+        #expect(trebleOnHigh < 0.25 * 0.35) // -12 dB is 0.25x.
+    }
+    /// Steady-state peak of a stereo sine through the mixer at 48 kHz.
+    private func sineLevel(frequency: Double, eq: (Float, Float, Float)) -> Float {
+        let state = SWMixerCreate()!
+        defer { SWMixerDestroy(state) }
+        SWMixerSetSampleRate(state, 48000)
+        SWMixerSetEQ(state, eq.0, eq.1, eq.2)
+        let frames = 48000
+        var input = [Float](repeating: 0, count: frames * 2)
+        for f in 0..<frames { let v = Float(0.25 * sin(2 * .pi * frequency * Double(f) / 48000)); input[f * 2] = v; input[f * 2 + 1] = v }
+        let output = render(state, input: input)
+        return output[(frames)...].map(abs).max() ?? 0
+    }
     private func render(_ state: OpaquePointer, input: [Float], inputChannels: UInt32 = 2) -> [Float] {
         var source = input, result = [Float](repeating: 99, count: input.count)
         source.withUnsafeMutableBytes { src in

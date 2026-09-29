@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0 — Preview
+
+- The Apps list now shows only apps that are playing sound or using the microphone (previously every app that had ever opened audio), with live *Playing* / *Mic* status. Apps stay listed for 30 seconds after going quiet.
+- Helper processes are grouped under their parent app (for example Chrome's audio helper shows as Google Chrome).
+- Microphone "In use by …" indicator, microphone mute button, right-click menu item, and a new global shortcut.
+- Per-app 3-band EQ (bass, mid, treble) with presets, and per-app left/right balance.
+- Adjusting an app turns mixing on automatically; saved settings are dimmed while mixing is off.
+- Fixed: device and output menus rendered their labels out of order (chevron before the name, oversized text).
+- Fixed: invisible direction marks in some app names (for example WhatsApp) affected text layout.
+- The popover now resizes to its content; Settings reorganized with descriptions; About shows the app icon and issue link.
+
 ## 0.2.0 — Preview
 
 - Per-app volume up to 200% with a soft limiter; unity and lower gain stay bit-transparent.

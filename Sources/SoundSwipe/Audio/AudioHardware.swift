@@ -68,7 +68,7 @@ struct AudioDevice: Identifiable, Equatable {
         Hardware.list(Hardware.system, kAudioHardwarePropertyDevices).compactMap { id in
             let uid = Hardware.string(id, kAudioDevicePropertyDeviceUID)
             guard !uid.hasPrefix("app.soundswipe."), !uid.isEmpty else { return nil }
-            return AudioDevice(id: id, uid: uid, name: Hardware.string(id, kAudioObjectPropertyName),
+            return AudioDevice(id: id, uid: uid, name: AudioApplication.clean(Hardware.string(id, kAudioObjectPropertyName)),
                                hasOutput: !Hardware.list(id, kAudioDevicePropertyStreams, scope: kAudioObjectPropertyScopeOutput).isEmpty,
                                hasInput: !Hardware.list(id, kAudioDevicePropertyStreams, scope: kAudioObjectPropertyScopeInput).isEmpty)
         }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }

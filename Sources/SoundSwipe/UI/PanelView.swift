@@ -378,72 +378,95 @@ private struct DeviceIcon: View {
     }
 }
 
+/// Positions along a slider track; kept separate so view bodies stay simple to type-check.
+private struct TrackGeometry {
+    static let thumb: CGFloat = 14
+    let length: CGFloat
+    let fraction: CGFloat
+    /// Thumb center along the track axis, from the start edge.
+    var position: CGFloat { Self.thumb / 2 + (length - Self.thumb) * fraction }
+    var center: CGFloat { length / 2 }
+    func fraction(at location: CGFloat) -> CGFloat { min(1, max(0, (location - Self.thumb / 2) / (length - Self.thumb))) }
+}
+
+private struct SliderThumb: View {
+    var dot = false
+    var body: some View {
+        Circle().fill(Color.white).shadow(color: Color.black.opacity(0.35), radius: 1.5, y: 0.5)
+            .overlay(Circle().fill(Theme.accent).frame(width: dot ? 5 : 0, height: dot ? 5 : 0))
+            .frame(width: TrackGeometry.thumb, height: TrackGeometry.thumb)
+    }
+}
+
 /// A graphic-EQ fader: drag or use VoiceOver adjust actions; the center line marks 0 dB.
 private struct VerticalSlider: View {
     @Binding var value: Float
     let range: ClosedRange<Float>
     let label: String
+    private var fraction: CGFloat { CGFloat((value - range.lowerBound) / (range.upperBound - range.lowerBound)) }
+
     var body: some View {
-        GeometryReader { geometry in
-            let height = geometry.size.height, thumb: CGFloat = 14, midX = geometry.size.width / 2
-            let fraction = CGFloat((value - range.lowerBound) / (range.upperBound - range.lowerBound))
-            let y = thumb / 2 + (height - thumb) * (1 - fraction)
-            ZStack {
-                ForEach(0..<5) { tick in
-                    Rectangle().fill(Color.primary.opacity(tick == 2 ? 0.35 : 0.12))
-                        .frame(width: tick == 2 ? 16 : 10, height: 1)
-                        .position(x: midX, y: thumb / 2 + (height - thumb) * CGFloat(tick) / 4)
-                }
-                Capsule().fill(Color.primary.opacity(0.14)).frame(width: 4, height: height - thumb).position(x: midX, y: height / 2)
-                Capsule().fill(Theme.accent.opacity(0.85))
-                    .frame(width: 4, height: abs(y - height / 2)).position(x: midX, y: (y + height / 2) / 2)
-                Circle().fill(.white).shadow(color: .black.opacity(0.35), radius: 1.5, y: 0.5)
-                    .overlay(Circle().fill(Theme.accent).frame(width: 5, height: 5))
-                    .frame(width: thumb, height: thumb).position(x: midX, y: y)
-            }
-            .contentShape(Rectangle())
-            .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
-                let fraction = Float(1 - (drag.location.y - thumb / 2) / (height - thumb))
-                value = min(range.upperBound, max(range.lowerBound, range.lowerBound + fraction * (range.upperBound - range.lowerBound)))
-            })
-        }
-        .frame(width: 30)
-        .help(String(format: "%+.1f dB", value))
-        .accessibilityElement()
-        .accessibilityLabel(label)
-        .accessibilityValue(String(format: "%.1f decibels", value))
-        .accessibilityAdjustableAction { direction in
-            let step: Float = direction == .increment ? 1 : -1
-            value = min(range.upperBound, max(range.lowerBound, value + step))
-        }
+        GeometryReader { geometry in fader(size: geometry.size) }
+            .frame(width: 30)
+            .help(String(format: "%+.1f dB", value))
+            .accessibilityElement()
+            .accessibilityLabel(label)
+            .accessibilityValue(String(format: "%.1f decibels", value))
+            .accessibilityAdjustableAction { direction in set(value + (direction == .increment ? 1 : -1)) }
     }
+    private func fader(size: CGSize) -> some View {
+        // Track coordinates run top to bottom; the value runs bottom to top.
+        let track = TrackGeometry(length: size.height, fraction: 1 - fraction)
+        let midX: CGFloat = size.width / 2
+        let fillLength: CGFloat = abs(track.position - track.center)
+        let fillMid: CGFloat = (track.position + track.center) / 2
+        return ZStack {
+            ForEach(0..<5, id: \.self) { tick in tickMark(tick, track: track, x: midX) }
+            Capsule().fill(Color.primary.opacity(0.14)).frame(width: 4, height: size.height - TrackGeometry.thumb).position(x: midX, y: track.center)
+            Capsule().fill(Theme.accent.opacity(0.85)).frame(width: 4, height: fillLength).position(x: midX, y: fillMid)
+            SliderThumb(dot: true).position(x: midX, y: track.position)
+        }
+        .contentShape(Rectangle())
+        .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+            let position = Float(1 - track.fraction(at: drag.location.y))
+            set(range.lowerBound + position * (range.upperBound - range.lowerBound))
+        })
+    }
+    private func tickMark(_ tick: Int, track: TrackGeometry, x: CGFloat) -> some View {
+        let isCenter = tick == 2
+        let y: CGFloat = TrackGeometry.thumb / 2 + (track.length - TrackGeometry.thumb) * CGFloat(tick) / 4
+        return Rectangle().fill(Color.primary.opacity(isCenter ? 0.35 : 0.12)).frame(width: isCenter ? 16 : 10, height: 1).position(x: x, y: y)
+    }
+    private func set(_ newValue: Float) { value = min(range.upperBound, max(range.lowerBound, newValue)) }
 }
 
-/// Left/right balance that fills outward from the center.
+/// Left/right balance that fills outward from the center; double-click to center.
 private struct BalanceSlider: View {
     @Binding var value: Float
+
     var body: some View {
-        GeometryReader { geometry in
-            let width = geometry.size.width, thumb: CGFloat = 14, midY = geometry.size.height / 2
-            let x = thumb / 2 + (width - thumb) * CGFloat((value + 1) / 2)
-            ZStack {
-                Capsule().fill(Color.primary.opacity(0.14)).frame(width: width - thumb, height: 4).position(x: width / 2, y: midY)
-                Capsule().fill(Theme.accent.opacity(0.85)).frame(width: abs(x - width / 2), height: 4).position(x: (x + width / 2) / 2, y: midY)
-                Rectangle().fill(Color.primary.opacity(0.4)).frame(width: 1.5, height: 10).position(x: width / 2, y: midY)
-                Circle().fill(.white).shadow(color: .black.opacity(0.35), radius: 1.5, y: 0.5)
-                    .frame(width: thumb, height: thumb).position(x: x, y: midY)
-            }
-            .contentShape(Rectangle())
-            .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
-                value = min(1, max(-1, Float((drag.location.x - thumb / 2) / (width - thumb)) * 2 - 1))
-            })
-            .onTapGesture(count: 2) { value = 0 }
-        }
-        .accessibilityElement()
-        .accessibilityLabel("Balance")
-        .accessibilityValue(value == 0 ? "Center" : "\(Int(abs(value) * 100)) percent \(value < 0 ? "left" : "right")")
-        .accessibilityAdjustableAction { direction in value = min(1, max(-1, value + (direction == .increment ? 0.1 : -0.1))) }
+        GeometryReader { geometry in bar(size: geometry.size) }
+            .accessibilityElement()
+            .accessibilityLabel("Balance")
+            .accessibilityValue(value == 0 ? "Center" : "\(Int(abs(value) * 100)) percent \(value < 0 ? "left" : "right")")
+            .accessibilityAdjustableAction { direction in set(value + (direction == .increment ? 0.1 : -0.1)) }
     }
+    private func bar(size: CGSize) -> some View {
+        let track = TrackGeometry(length: size.width, fraction: CGFloat((value + 1) / 2))
+        let midY: CGFloat = size.height / 2
+        let fillLength: CGFloat = abs(track.position - track.center)
+        let fillMid: CGFloat = (track.position + track.center) / 2
+        return ZStack {
+            Capsule().fill(Color.primary.opacity(0.14)).frame(width: size.width - TrackGeometry.thumb, height: 4).position(x: track.center, y: midY)
+            Capsule().fill(Theme.accent.opacity(0.85)).frame(width: fillLength, height: 4).position(x: fillMid, y: midY)
+            Rectangle().fill(Color.primary.opacity(0.4)).frame(width: 1.5, height: 10).position(x: track.center, y: midY)
+            SliderThumb().position(x: track.position, y: midY)
+        }
+        .contentShape(Rectangle())
+        .gesture(DragGesture(minimumDistance: 0).onChanged { drag in set(Float(track.fraction(at: drag.location.x)) * 2 - 1) })
+        .onTapGesture(count: 2) { value = 0 }
+    }
+    private func set(_ newValue: Float) { value = min(1, max(-1, newValue)) }
 }
 
 /// Post-processing peak as 8 LED segments on a -60…0 dB scale. Observes only the meter model, so updates stay local.

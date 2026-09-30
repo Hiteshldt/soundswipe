@@ -97,6 +97,33 @@ struct SoundSwipeTests {
         eq.eq = [0, 0, 0]; eq.balance = -0.5
         #expect(eq.needsMixing && !eq.eqActive)
     }
+    @Test func testGroupingSeparatesInstancesAndSharedServices() {
+        typealias E = AudioApplication.ProcessEntry
+        let apps = AudioApplication.group([
+            // One Chrome: main audio service plus a helper, all tabs and windows share them.
+            E(process: 10, bundleKey: "com.google.Chrome", instance: 100, name: "Google Chrome", playing: true),
+            E(process: 11, bundleKey: "com.google.Chrome", instance: 100, name: "Google Chrome"),
+            // A second Chrome instance (separate profile directory).
+            E(process: 12, bundleKey: "com.google.Chrome", instance: 200, name: "Google Chrome", recording: true),
+            // WebKit media processes for two different apps share a bundle ID.
+            E(process: 20, bundleKey: "com.apple.WebKit.GPU", instance: 300, name: "Safari Graphics and Media", playing: true),
+            E(process: 21, bundleKey: "com.apple.WebKit.GPU", instance: 301, name: "Mail Graphics and Media"),
+            // Two unrelated command-line processes with the same name.
+            E(process: 30, bundleKey: "pid:400", instance: 400, name: "player", playing: true),
+            E(process: 31, bundleKey: "pid:401", instance: 401, name: "player", playing: true),
+        ])
+        let byID = Dictionary(uniqueKeysWithValues: apps.map { ($0.id, $0) })
+        #expect(apps.count == 6)
+        #expect(byID["pid:400"]?.name == "player" && byID["pid:401"]?.name == "player (2)")
+        #expect(byID["com.google.Chrome"]?.processIDs == [10, 11])
+        #expect(byID["com.google.Chrome"]?.isPlaying == true)
+        #expect(byID["com.google.Chrome#200"]?.name == "Google Chrome (2)")
+        #expect(byID["com.google.Chrome#200"]?.isRecording == true)
+        #expect(byID["com.apple.WebKit.GPU|Safari Graphics and Media"]?.processIDs == [20])
+        #expect(byID["com.apple.WebKit.GPU|Mail Graphics and Media"]?.processIDs == [21])
+        #expect(AudioApplication.isSessionKey("com.google.Chrome#200") && AudioApplication.isSessionKey("pid:42"))
+        #expect(!AudioApplication.isSessionKey("com.apple.WebKit.GPU|Safari Graphics and Media"))
+    }
     @Test func testNamesDropInvisibleCharacters() {
         #expect(AudioApplication.clean("\u{200E}WhatsApp") == "WhatsApp")
         #expect(AudioApplication.clean("  Music\u{0007} ") == "Music")

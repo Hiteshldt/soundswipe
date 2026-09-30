@@ -46,6 +46,9 @@ final class AudioController: ObservableObject {
 
     init(preferences: Preferences) {
         self.preferences = preferences
+        // Settings for a specific process or extra app copy cannot apply after a relaunch.
+        let stale = preferences.mixes.keys.filter(AudioApplication.isSessionKey)
+        if !stale.isEmpty { stale.forEach { preferences.mixes.removeValue(forKey: $0) } }
         for selector in [kAudioHardwarePropertyDevices, kAudioHardwarePropertyDefaultOutputDevice, kAudioHardwarePropertyDefaultInputDevice] {
             observations.append(AudioObservation(Hardware.system, selector: selector) { [weak self] in
                 Task { @MainActor in self?.refresh() }

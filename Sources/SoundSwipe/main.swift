@@ -149,7 +149,8 @@ if #available(macOS 14.2, *) {
         let output = Hardware.read(Hardware.system, kAudioHardwarePropertyDefaultOutputDevice, default: AudioObjectID(0))
         let report: [String: Any] = ["version": AppInfo.version, "os": ProcessInfo.processInfo.operatingSystemVersionString,
             "devices": devices.map { ["name": $0.name, "input": $0.hasInput, "output": $0.hasOutput] as [String: Any] },
-            "defaultOutputPresent": devices.contains { $0.id == output }, "audioProcesses": AudioApplication.discover().count]
+            "defaultOutputPresent": devices.contains { $0.id == output },
+            "applications": AudioApplication.discover().map { ["id": $0.id, "name": $0.name, "processes": $0.processIDs.count, "playing": $0.isPlaying, "microphone": $0.isRecording] as [String: Any] }]
         if let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys]), let text = String(data: data, encoding: .utf8) { print(text) }
     } else {
         MainActor.assumeIsolated {

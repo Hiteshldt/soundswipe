@@ -23,7 +23,7 @@ SoundSwipe is a free, open-source macOS menu bar app for output and input contro
 ## Features
 
 - **Menu bar panel** with native materials, light/dark appearance, and VoiceOver labels.
-- **See which apps are using audio.** Only apps that are playing sound or using the microphone appear, with a live *Playing* / *Mic* status. Helper processes (like a browser's audio helper) are grouped under their app.
+- **See which apps are using audio.** Only apps that are playing sound or using the microphone appear, with a live *Playing* / *Mic* status. Helper processes (like a browser's audio helper) are grouped under their app, and separately running copies of the same app get their own rows.
 - **Microphone in-use indicator** showing which apps are listening, plus one-click microphone mute (and a shortcut for it).
 - **Output and microphone switching**, output volume, mute, and input level — with a clear message for fixed-volume devices.
 - **Per-app volume from 0–200%.** Boost above 100% passes through a soft limiter so it never hard-clips; at or below 100% audio is untouched.
@@ -70,6 +70,7 @@ Needs Swift 5.10+ (Xcode 16+ or the Command Line Tools). You can also open `Pack
 - Mixing handles stereo, 32-bit float PCM routes; other layouts stop mixing and report an error. No recording or Audio Unit plug-ins yet.
 - Microphone use is shown per app, but macOS does not allow per-app microphone volume; mute and level apply to the whole input device.
 - Helper processes are grouped only through their verified parent app; system services (for example WebKit media) keep the name macOS reports.
+- **Browser tabs and windows cannot be controlled separately.** Chrome, Edge, Brave, Electron apps, and Safari mix every tab and window inside one shared audio process before macOS receives it, so no Mac audio utility can split them. Use the browser's own tab mute, or run a second browser instance/profile — each running copy gets its own row.
 - Some protected content cannot be captured, and conferencing apps or Bluetooth call profiles need more hardware testing.
 - SoundSwipe is a menu bar app, not a Control Center module. No automatic updater yet.
 

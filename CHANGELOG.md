@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1 — Preview
+
+- Separately running copies of the same app (for example a second Chrome instance or profile) now get their own rows and are controlled independently.
+- Fixed: WebKit media processes serving different apps (Safari, Mail, other web views) were merged into one row, so adjusting one could affect another.
+- Command-line audio tools show their executable name; duplicate names are numbered.
+- `--diagnostics` lists detected app rows. Session-only settings for past instances are cleaned up at launch.
+
 ## 0.3.0 — Preview
 
 - The Apps list now shows only apps that are playing sound or using the microphone (previously every app that had ever opened audio), with live *Playing* / *Mic* status. Apps stay listed for 30 seconds after going quiet.

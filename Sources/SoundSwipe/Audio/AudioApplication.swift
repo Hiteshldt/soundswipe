@@ -45,8 +45,11 @@ struct AudioApplication: Identifiable, Equatable {
             // Background services (for example WebKit media for Safari) keep their own identity; ownership is never guessed.
             let running = NSRunningApplication(processIdentifier: pid)
             let name = running?.localizedName ?? (bundle.isEmpty ? executableName(of: pid) ?? "Process \(pid)" : bundle.split(separator: ".").last.map(String.init) ?? bundle)
+            // Apple background services such as Siri's wake-word listener hold the microphone constantly;
+            // like the system's own privacy indicator, their input is not reported as microphone use.
+            let systemListener = bundle.hasPrefix("com.apple.") && running?.activationPolicy != .regular
             return ProcessEntry(process: process, bundleKey: bundle.isEmpty ? "pid:\(pid)" : bundle, instance: pid, name: clean(name),
-                                icon: running?.icon, playing: playing, recording: recording)
+                                icon: running?.icon, playing: playing, recording: recording && !systemListener)
         }
         return group(entries)
     }

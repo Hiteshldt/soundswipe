@@ -88,7 +88,7 @@ struct SettingsView: View {
             Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 72, height: 72)
             Text("SoundSwipe").font(.system(size: 22, weight: .semibold))
             Text("Version \(AppInfo.version) · Preview").font(.callout).foregroundStyle(.secondary)
-            Text("Per-app volume, EQ, and routing for your Mac.\nFree and open source under the MIT license. No analytics or network access.")
+            Text("Per-app volume, 10-band EQ, and routing for your Mac.\nFree and open source under the MIT license. No analytics or network access.")
                 .font(.callout).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).padding(.top, 4)
             Spacer().frame(height: 6)
             HStack(spacing: 14) {
@@ -101,6 +101,7 @@ struct SettingsView: View {
                     Text("Made by Hitesh Gupta")
                     if let url = Preferences.profileURL(preferences.github, hosts: ["github.com", "www.github.com"]) { Text("·"); Link("GitHub", destination: url) }
                     if let url = Preferences.profileURL(preferences.twitter, hosts: ["x.com", "twitter.com", "www.x.com", "www.twitter.com"]) { Text("·"); Link("X", destination: url) }
+                    if let url = AppInfo.website { Text("·"); Link(url.host ?? "Website", destination: url) }
                 }
                 Text("Inspired by Background Music and SoundSource. Not affiliated with either.").foregroundStyle(.tertiary)
             }.font(.caption).foregroundStyle(.secondary)

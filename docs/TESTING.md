@@ -22,7 +22,8 @@ Record actual OS version, machine architecture, device model, sample rate, and p
 - Fixed-volume devices show a clear limitation; their controls do not pretend to work.
 - Mix two audible apps, mute one, adjust the other, route them separately. Compare unity-gain playback, clipping, channel separation, and sample counts.
 - Play audio in two apps and join a call: only active apps are listed, with correct Playing/Mic status; they remain for ~30 s after stopping. Chrome/Electron helpers appear under their app. Two Chrome instances (`open -na "Google Chrome" --args --user-data-dir=/tmp/second`) and Safari plus another WebKit app appear as separate rows and are controlled independently. `--diagnostics` lists the detected rows.
-- Apply each EQ preset and full balance to both sides; confirm no clicks when dragging EQ sliders.
+- Apply each EQ preset, toggle EQ off/on, and set full balance to both sides; confirm no clicks when dragging EQ faders.
+- Set each output device's volume from the Output Devices list, including non-default and fixed-volume devices; confirm device icons.
 - Mute the microphone from the panel, the right-click menu, and the shortcut; confirm the call hears silence.
 - Boost an app to 200% with loud material: no audible hard clipping; meters turn orange near full scale.
 - Scroll over the menu bar icon (trackpad and wheel, natural scrolling on and off); right-click menu output switching; muted icon state.

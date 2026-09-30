@@ -6,7 +6,12 @@ import Combine
 @available(macOS 14.2, *)
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
-    let preferences = Preferences()
+    let preferences: Preferences = {
+        // `--snapshot --sample-mix` renders from a throwaway settings store so screenshots never touch real settings.
+        guard CommandLine.arguments.contains("--sample-mix"), let defaults = UserDefaults(suiteName: "app.soundswipe.snapshot") else { return Preferences() }
+        defaults.removePersistentDomain(forName: "app.soundswipe.snapshot")
+        return Preferences(defaults: defaults)
+    }()
     lazy var audio = AudioController(preferences: preferences)
     let shortcuts = ShortcutManager()
     private var item: NSStatusItem!
@@ -56,14 +61,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         if arguments.contains("--dark") { NSApp.appearance = NSAppearance(named: .darkAqua) }
         audio.setPanelVisible(true)
         if let expand = arguments.firstIndex(of: "--expand").map({ arguments[$0 + 1] }) { PanelView.snapshotExpanded = expand }
+        if let id = arguments.firstIndex(of: "--sample-mix").map({ arguments[$0 + 1] }) {
+            var mix = AppMix(volume: 1.35); mix.eq = EQPreset.trebleBoost.bands
+            preferences.mixes[id] = mix
+            PanelView.snapshotMixingLook = true
+        }
         let host: NSView
         if let tab = arguments.firstIndex(of: "--settings").flatMap({ Int(arguments[$0 + 1]) }) {
-            host = NSHostingView(rootView: SettingsView(audio: audio, preferences: preferences, shortcuts: shortcuts, initialTab: tab))
+            host = NSHostingView(rootView: SettingsView(audio: audio, preferences: preferences, shortcuts: shortcuts, initialTab: tab)
+                .background(Color(nsColor: .windowBackgroundColor)))
         } else {
             host = NSHostingView(rootView: PanelView(audio: audio, preferences: preferences, openSettings: {}))
         }
-        let window = NSWindow(contentRect: NSRect(origin: .zero, size: host.fittingSize), styleMask: [.borderless], backing: .buffered, defer: false)
-        window.contentView = host; window.orderFront(nil)
+        // A key window renders controls in their active (accent-colored) state, as in the real popover.
+        let window = SnapshotWindow(contentRect: NSRect(origin: .zero, size: host.fittingSize), styleMask: [.borderless], backing: .buffered, defer: false)
+        window.contentView = host
+        NSApp.setActivationPolicy(.accessory); NSApp.activate(ignoringOtherApps: true); window.makeKeyAndOrderFront(nil)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             window.setContentSize(host.fittingSize); host.layoutSubtreeIfNeeded()
             if let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) {
@@ -141,6 +154,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         if let scrollMonitor { NSEvent.removeMonitor(scrollMonitor) }
         audio.shutdown(); shortcuts.shutdown()
     }
+}
+
+private final class SnapshotWindow: NSWindow {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
 }
 
 if #available(macOS 14.2, *) {

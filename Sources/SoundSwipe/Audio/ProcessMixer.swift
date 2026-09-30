@@ -58,7 +58,7 @@ final class ProcessMixer {
         guard let state else { return }
         SWMixerSetGain(state, mix.effectiveGain)
         SWMixerSetBalance(state, mix.balance)
-        SWMixerSetEQ(state, mix.eq[0], mix.eq[1], mix.eq[2])
+        mix.activeEQ.withUnsafeBufferPointer { SWMixerSetEQ(state, $0.baseAddress, Int32($0.count)) }
     }
     /// EQ coefficients depend on the device rate, which can change while routing (for example Bluetooth profile switches).
     func refreshSampleRate() {

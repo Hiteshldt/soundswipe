@@ -4,11 +4,15 @@ struct AppMix: Codable, Equatable {
     /// 1 is unchanged; up to `maxVolume` boosts through the DSP soft limiter.
     static let maxVolume: Float = 2
     static let eqRange: Float = 12
+    static let eqFrequencies: [Float] = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
+    static let flatEQ = [Float](repeating: 0, count: 10)
     var volume: Float = 1
     var muted = false
     var outputUID: String? = nil
-    /// Bass (100 Hz shelf), mid (1 kHz), treble (8 kHz shelf) in dB.
-    var eq: [Float] = [0, 0, 0]
+    /// Gain in dB for each of `eqFrequencies`.
+    var eq: [Float] = Self.flatEQ
+    /// Bypasses the EQ without losing its bands.
+    var eqEnabled = true
     /// -1 left … 1 right.
     var balance: Float = 0
     init(volume: Float = 1, muted: Bool = false, outputUID: String? = nil) { self.volume = volume; self.muted = muted; self.outputUID = outputUID }
@@ -18,36 +22,67 @@ struct AppMix: Codable, Equatable {
         volume = try c.decodeIfPresent(Float.self, forKey: .volume) ?? 1
         muted = try c.decodeIfPresent(Bool.self, forKey: .muted) ?? false
         outputUID = try c.decodeIfPresent(String.self, forKey: .outputUID)
-        let bands = try c.decodeIfPresent([Float].self, forKey: .eq) ?? []
-        eq = bands.count == 3 ? bands : [0, 0, 0]
+        eq = Self.normalizedEQ(try c.decodeIfPresent([Float].self, forKey: .eq) ?? [])
+        eqEnabled = try c.decodeIfPresent(Bool.self, forKey: .eqEnabled) ?? true
         balance = try c.decodeIfPresent(Float.self, forKey: .balance) ?? 0
     }
+    /// 0.3.x stored bass/mid/treble; spread those across the matching octave bands.
+    static func normalizedEQ(_ bands: [Float]) -> [Float] {
+        switch bands.count {
+        case 10: bands.map { min(eqRange, max(-eqRange, $0.isFinite ? $0 : 0)) }
+        case 3: [bands[0], bands[0], bands[0] * 0.5, 0, bands[1] * 0.5, bands[1], bands[1] * 0.5, bands[2] * 0.5, bands[2], bands[2]]
+        default: flatEQ
+        }
+    }
     var effectiveGain: Float { muted ? 0 : min(Self.maxVolume, max(0, volume.isFinite ? volume : 1)) }
-    var eqActive: Bool { eq.contains { abs($0) > 0.01 } }
+    /// Band gains the DSP should apply right now.
+    var activeEQ: [Float] { eqEnabled ? eq : Self.flatEQ }
+    var eqActive: Bool { activeEQ.contains { abs($0) > 0.01 } }
     var needsMixing: Bool { muted || abs(effectiveGain - 1) > 0.001 || outputUID != nil || eqActive || abs(balance) > 0.01 }
 }
 
+/// Graphic EQ presets for 32 Hz … 16 kHz, modeled on common music-player curves.
 enum EQPreset: String, CaseIterable, Identifiable {
-    case flat, bass, voice, treble, loudness, lessBass
+    case flat, bassBoost, bassReducer, trebleBoost, trebleReducer, vocal, spokenWord, loudness, acoustic, classical, electronic, hipHop, jazz, pop, rock, smallSpeakers
     var id: String { rawValue }
     var title: String {
         switch self {
         case .flat: "Flat"
-        case .bass: "Bass Boost"
-        case .voice: "Voice Clarity"
-        case .treble: "Treble Boost"
+        case .bassBoost: "Bass Boost"
+        case .bassReducer: "Bass Reducer"
+        case .trebleBoost: "Treble Boost"
+        case .trebleReducer: "Treble Reducer"
+        case .vocal: "Vocal Booster"
+        case .spokenWord: "Spoken Word"
         case .loudness: "Loudness"
-        case .lessBass: "Reduce Bass"
+        case .acoustic: "Acoustic"
+        case .classical: "Classical"
+        case .electronic: "Electronic"
+        case .hipHop: "Hip-Hop"
+        case .jazz: "Jazz"
+        case .pop: "Pop"
+        case .rock: "Rock"
+        case .smallSpeakers: "Small Speakers"
         }
     }
     var bands: [Float] {
         switch self {
-        case .flat: [0, 0, 0]
-        case .bass: [6, 0, 0]
-        case .voice: [-5, 3, 2]
-        case .treble: [0, 0, 5]
-        case .loudness: [5, -1, 4]
-        case .lessBass: [-8, 0, 0]
+        case .flat: AppMix.flatEQ
+        case .bassBoost: [6, 5, 4, 2.5, 1, 0, 0, 0, 0, 0]
+        case .bassReducer: [-6, -5, -4, -2.5, -1, 0, 0, 0, 0, 0]
+        case .trebleBoost: [0, 0, 0, 0, 0, 1, 2.5, 4, 5, 6]
+        case .trebleReducer: [0, 0, 0, 0, 0, -1, -2.5, -4, -5, -6]
+        case .vocal: [-2, -3, -3, 1, 4, 4, 3.5, 1.5, 0, -1.5]
+        case .spokenWord: [-4, -1, 0, 1, 3.5, 4.5, 4.5, 4, 2.5, 0]
+        case .loudness: [5, 4, 1, 0, -1, 0, 0, 1, 4, 3]
+        case .acoustic: [4.5, 4.5, 3.5, 1, 1.5, 1.5, 3, 3.5, 3, 1.5]
+        case .classical: [4.5, 3.5, 3, 2.5, -1.5, -1.5, 0, 2, 3, 3.5]
+        case .electronic: [4, 3.5, 1, 0, -2, 2, 1, 1, 4, 5]
+        case .hipHop: [5, 4, 1.5, 3, -1, -1, 1.5, -0.5, 2, 3]
+        case .jazz: [4, 3, 1.5, 2, -1.5, -1.5, 0, 1.5, 3, 3.5]
+        case .pop: [-1.5, -1, 0, 2, 4, 4, 2, 0, -1, -1.5]
+        case .rock: [5, 4, 3, 1.5, -0.5, -1, 0.5, 2.5, 3.5, 4.5]
+        case .smallSpeakers: [-6, -3, 2, 3, 2, 0, 0, 1, 2, 1]
         }
     }
     static func matching(_ bands: [Float]) -> EQPreset? { allCases.first { $0.bands == bands } }
@@ -55,6 +90,9 @@ enum EQPreset: String, CaseIterable, Identifiable {
 
 enum AppInfo {
     static var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev" }
+    static var website: URL? {
+        (Bundle.main.object(forInfoDictionaryKey: "DeveloperWebsite") as? String).flatMap(URL.init(string:)).flatMap { $0.scheme == "https" ? $0 : nil }
+    }
     static var repository: URL? { (Bundle.main.object(forInfoDictionaryKey: "RepositoryURL") as? String).flatMap { Preferences.profileURL($0, hosts: ["github.com"]) } }
 }
 

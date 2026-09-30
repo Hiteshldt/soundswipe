@@ -3,7 +3,8 @@
 #include <stdbool.h>
 /// Upper bound for per-app gain. Values above 1.0 pass through a soft limiter.
 #define SW_MAX_GAIN 2.0f
-/// EQ band range in dB (low shelf 100 Hz, peak 1 kHz, high shelf 8 kHz).
+/// Graphic EQ: 10 one-octave peaking bands from 32 Hz to 16 kHz, each within ±SW_EQ_RANGE dB.
+#define SW_EQ_BANDS 10
 #define SW_EQ_RANGE 12.0f
 typedef struct SWMixer SWMixer;
 SWMixer * _Nullable SWMixerCreate(void);
@@ -11,7 +12,8 @@ void SWMixerDestroy(SWMixer * _Nonnull mixer);
 void SWMixerSetGain(SWMixer * _Nonnull mixer, float gain);
 /// -1 is full left, 0 centered, 1 full right.
 void SWMixerSetBalance(SWMixer * _Nonnull mixer, float balance);
-void SWMixerSetEQ(SWMixer * _Nonnull mixer, float lowDB, float midDB, float highDB);
+/// Copies `count` band gains in dB (extra bands are ignored, missing bands are flat).
+void SWMixerSetEQ(SWMixer * _Nonnull mixer, const float * _Nullable gainsDB, int count);
 void SWMixerSetSampleRate(SWMixer * _Nonnull mixer, double rate);
 float SWMixerPeak(SWMixer * _Nonnull mixer);
 bool SWMixerFormatFailed(SWMixer * _Nonnull mixer);

@@ -19,6 +19,9 @@ final class AudioController: ObservableObject {
     @Published private(set) var inputVolume: Float?
     @Published private(set) var outputMuted = false
     @Published private(set) var inputMuted = false
+    /// Volume of every output device that exposes one (fixed-volume devices are absent).
+    @Published private(set) var deviceVolumes: [AudioObjectID: Float] = [:]
+    @Published private(set) var mutedDevices: Set<AudioObjectID> = []
     @Published private(set) var mixingEnabled = false
     @Published private(set) var controlledApps: Set<String> = []
     @Published var error: String?
@@ -35,8 +38,7 @@ final class AudioController: ObservableObject {
     private var meterTimer: Timer?
     private var panelVisible = false
     private var resumeAfterWake = false
-    private var volumeBeforeMute: Float = 0.5
-    private var inputVolumeBeforeMute: Float = 0.5
+    private var volumesBeforeMute: [AudioObjectID: Float] = [:]
     private var workspaceObservers: [NSObjectProtocol] = []
     var outputs: [AudioDevice] { devices.filter(\.hasOutput) }
     var inputs: [AudioDevice] { devices.filter(\.hasInput) }
@@ -90,7 +92,9 @@ final class AudioController: ObservableObject {
         inputID = Hardware.read(Hardware.system, kAudioHardwarePropertyDefaultInputDevice, default: AudioObjectID(0))
         if oldOutput != outputID || oldInput != inputID || deviceChanged || deviceObservations.isEmpty {
             deviceObservations.removeAll()
-            for (id, scope) in [(outputID, kAudioObjectPropertyScopeOutput), (inputID, kAudioObjectPropertyScopeInput)] where id != 0 {
+            // Every output is observed so the device list stays live; only the default input is shown.
+            let watched = outputs.map { ($0.id, kAudioObjectPropertyScopeOutput) } + (inputID != 0 ? [(inputID, kAudioObjectPropertyScopeInput)] : [])
+            for (id, scope) in watched {
                 for selector in [kAudioDevicePropertyVolumeScalar, kAudioDevicePropertyMute] {
                     for element: UInt32 in [0, 1, 2] {
                         deviceObservations.append(AudioObservation(id, selector: selector, scope: scope, element: element) { [weak self] in Task { @MainActor in self?.refreshVolumes() } })
@@ -104,6 +108,14 @@ final class AudioController: ObservableObject {
         refreshApplications()
     }
     func refreshVolumes() {
+        var volumes: [AudioObjectID: Float] = [:], muted: Set<AudioObjectID> = []
+        for device in outputs {
+            let volume = Hardware.volume(device.id, scope: kAudioObjectPropertyScopeOutput)
+            if let volume { volumes[device.id] = volume }
+            if Hardware.read(device.id, kAudioDevicePropertyMute, default: UInt32(0), scope: kAudioObjectPropertyScopeOutput) != 0 || volume == 0 { muted.insert(device.id) }
+        }
+        if volumes != deviceVolumes { deviceVolumes = volumes }
+        if muted != mutedDevices { mutedDevices = muted }
         outputVolume = Hardware.volume(outputID, scope: kAudioObjectPropertyScopeOutput)
         inputVolume = Hardware.volume(inputID, scope: kAudioObjectPropertyScopeInput)
         outputMuted = Hardware.read(outputID, kAudioDevicePropertyMute, default: UInt32(0), scope: kAudioObjectPropertyScopeOutput) != 0 || outputVolume == 0
@@ -113,6 +125,7 @@ final class AudioController: ObservableObject {
     func selectInput(_ id: AudioObjectID) { perform { try Hardware.write(Hardware.system, kAudioHardwarePropertyDefaultInputDevice, id) }; refresh() }
     func setOutputVolume(_ value: Float) { setVolume(value, device: outputID, scope: kAudioObjectPropertyScopeOutput) }
     func setInputVolume(_ value: Float) { setVolume(value, device: inputID, scope: kAudioObjectPropertyScopeInput) }
+    func setVolume(_ value: Float, output device: AudioObjectID) { setVolume(value, device: device, scope: kAudioObjectPropertyScopeOutput) }
     private func setVolume(_ value: Float, device: AudioObjectID, scope: AudioObjectPropertyScope) {
         perform {
             try Hardware.setVolume(device, scope: scope, value: value)
@@ -122,21 +135,23 @@ final class AudioController: ObservableObject {
         }
         refreshVolumes()
     }
-    func toggleMute() {
-        toggleMute(device: outputID, scope: kAudioObjectPropertyScopeOutput, muted: outputMuted, volume: outputVolume, saved: &volumeBeforeMute,
+    func toggleMute() { toggleMute(output: outputID) }
+    func toggleMute(output device: AudioObjectID) {
+        toggleMute(device: device, scope: kAudioObjectPropertyScopeOutput, muted: mutedDevices.contains(device), volume: deviceVolumes[device],
                    unsupported: "This output has fixed volume. Use its hardware controls.")
     }
     func toggleInputMute() {
-        toggleMute(device: inputID, scope: kAudioObjectPropertyScopeInput, muted: inputMuted, volume: inputVolume, saved: &inputVolumeBeforeMute,
+        toggleMute(device: inputID, scope: kAudioObjectPropertyScopeInput, muted: inputMuted, volume: inputVolume,
                    unsupported: "This microphone cannot be muted from macOS. Use its hardware controls.")
     }
     /// Prefers the device's mute switch; falls back to volume 0 and restores the previous level.
-    private func toggleMute(device: AudioObjectID, scope: AudioObjectPropertyScope, muted: Bool, volume: Float?, saved: inout Float, unsupported: String) {
+    private func toggleMute(device: AudioObjectID, scope: AudioObjectPropertyScope, muted: Bool, volume: Float?, unsupported: String) {
+        let saved = volumesBeforeMute[device] ?? 0.5
         if Hardware.writable(device, kAudioDevicePropertyMute, scope: scope) {
             perform { try Hardware.write(device, kAudioDevicePropertyMute, UInt32(muted ? 0 : 1), scope: scope) }
             if muted && volume == 0 { setVolume(saved, device: device, scope: scope) }
         } else if let volume {
-            if volume > 0 { saved = volume; setVolume(0, device: device, scope: scope) } else { setVolume(saved, device: device, scope: scope) }
+            if volume > 0 { volumesBeforeMute[device] = volume; setVolume(0, device: device, scope: scope) } else { setVolume(saved, device: device, scope: scope) }
         } else { error = unsupported }
         refreshVolumes()
     }

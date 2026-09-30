@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 — Preview
+
+- New Output Devices list: every output with one-click switching, its own volume slider and mute, and device icons (AirPods, headphones, speakers, TV, AirPlay).
+- Compact one-line app rows: slider with a 100% marker, segmented level meter, and an output picker showing the device icon.
+- Per-app 10-band graphic EQ (32 Hz–16 kHz) with an on/off switch, vertical faders, and 16 presets; center-filled balance slider. Settings from 0.3.x convert automatically.
+- Siri's always-on wake-word listener is no longer reported as microphone use.
+- About adds ayuvam.com. Snapshot tooling renders active-state screenshots from a throwaway settings store.
+
 ## 0.3.1 — Preview
 
 - Separately running copies of the same app (for example a second Chrome instance or profile) now get their own rows and are controlled independently.

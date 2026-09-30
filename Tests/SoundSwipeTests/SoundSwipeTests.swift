@@ -89,13 +89,19 @@ struct SoundSwipeTests {
         let legacy = #"{"volume":0.5,"muted":true,"outputUID":"usb"}"#.data(using: .utf8)!
         let mix = try JSONDecoder().decode(AppMix.self, from: legacy)
         #expect(mix.volume == 0.5 && mix.muted && mix.outputUID == "usb")
-        #expect(mix.eq == [0, 0, 0] && mix.balance == 0)
+        #expect(mix.eq == AppMix.flatEQ && mix.balance == 0 && mix.eqEnabled)
         var eq = AppMix()
-        eq.eq = EQPreset.bass.bands
+        eq.eq = EQPreset.bassBoost.bands
         #expect(eq.needsMixing && eq.eqActive)
-        #expect(EQPreset.matching(eq.eq) == .bass)
-        eq.eq = [0, 0, 0]; eq.balance = -0.5
+        #expect(EQPreset.matching(eq.eq) == .bassBoost)
+        eq.eqEnabled = false
+        #expect(!eq.eqActive && !eq.needsMixing && eq.activeEQ == AppMix.flatEQ)
+        eq.eq = AppMix.flatEQ; eq.eqEnabled = true; eq.balance = -0.5
         #expect(eq.needsMixing && !eq.eqActive)
+        // 0.3.x saved bass/mid/treble; they spread across the 10 bands.
+        let old = try JSONDecoder().decode(AppMix.self, from: #"{"eq":[6,0,-4]}"#.data(using: .utf8)!)
+        #expect(old.eq.count == 10 && old.eq[0] == 6 && old.eq[9] == -4 && old.eq[5] == 0)
+        #expect(EQPreset.allCases.allSatisfy { $0.bands.count == 10 && $0.bands.allSatisfy { abs($0) <= AppMix.eqRange } })
     }
     @Test func testGroupingSeparatesInstancesAndSharedServices() {
         typealias E = AudioApplication.ProcessEntry
@@ -138,27 +144,33 @@ struct SoundSwipeTests {
         #expect(abs(output[output.count - 1]) < 0.0001)
     }
     @Test func testDSPEQShapesFrequencies() {
-        let bass = sineLevel(frequency: 50, eq: (12, 0, 0))
-        let flat = sineLevel(frequency: 50, eq: (0, 0, 0))
-        let trebleOnBass = sineLevel(frequency: 50, eq: (0, 0, 12))
-        let trebleOnHigh = sineLevel(frequency: 12000, eq: (0, 0, -12))
+        let flat = sineLevel(frequency: 64, eq: AppMix.flatEQ)
+        let bass = sineLevel(frequency: 64, eq: [0, 12, 0, 0, 0, 0, 0, 0, 0, 0])
+        let trebleOnBass = sineLevel(frequency: 64, eq: [0, 0, 0, 0, 0, 0, 0, 0, 12, 12])
+        let cut = sineLevel(frequency: 8000, eq: [0, 0, 0, 0, 0, 0, 0, 0, -12, 0])
         #expect(abs(flat - 0.25) < 0.001)
         #expect(bass > 0.25 * 3)            // +12 dB is 4x; the limiter keeps it below 1.0.
         #expect(bass < 1)
         #expect(abs(trebleOnBass - 0.25) < 0.02)
-        #expect(trebleOnHigh < 0.25 * 0.35) // -12 dB is 0.25x.
+        #expect(cut < 0.25 * 0.35)          // -12 dB is 0.25x.
     }
     /// Steady-state peak of a stereo sine through the mixer at 48 kHz.
-    private func sineLevel(frequency: Double, eq: (Float, Float, Float)) -> Float {
+    private func sineLevel(frequency: Double, eq: [Float]) -> Float {
         let state = SWMixerCreate()!
         defer { SWMixerDestroy(state) }
         SWMixerSetSampleRate(state, 48000)
-        SWMixerSetEQ(state, eq.0, eq.1, eq.2)
+        eq.withUnsafeBufferPointer { SWMixerSetEQ(state, $0.baseAddress, Int32($0.count)) }
         let frames = 48000
         var input = [Float](repeating: 0, count: frames * 2)
         for f in 0..<frames { let v = Float(0.25 * sin(2 * .pi * frequency * Double(f) / 48000)); input[f * 2] = v; input[f * 2 + 1] = v }
         let output = render(state, input: input)
         return output[(frames)...].map(abs).max() ?? 0
+    }
+    @Test func testDeviceSymbols() {
+        #expect(AudioDevice.symbol(name: "Ronit's AirPods Pro", transport: kAudioDeviceTransportTypeBluetooth, output: true) == "airpods.pro")
+        #expect(AudioDevice.symbol(name: "MacBook Pro Speakers", transport: kAudioDeviceTransportTypeBuiltIn, output: true) == "laptopcomputer")
+        #expect(AudioDevice.symbol(name: "External Headphones", transport: kAudioDeviceTransportTypeBuiltIn, output: true) == "headphones")
+        #expect(AudioDevice.symbol(name: "LG TV", transport: kAudioDeviceTransportTypeHDMI, output: true) == "tv")
     }
     private func render(_ state: OpaquePointer, input: [Float], inputChannels: UInt32 = 2) -> [Float] {
         var source = input, result = [Float](repeating: 99, count: input.count)

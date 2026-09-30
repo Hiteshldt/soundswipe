@@ -64,14 +64,34 @@ struct AudioDevice: Identifiable, Equatable {
     let name: String
     let hasOutput: Bool
     let hasInput: Bool
+    var transport: UInt32 = 0
     static func discover() -> [AudioDevice] {
         Hardware.list(Hardware.system, kAudioHardwarePropertyDevices).compactMap { id in
             let uid = Hardware.string(id, kAudioDevicePropertyDeviceUID)
             guard !uid.hasPrefix("app.soundswipe."), !uid.isEmpty else { return nil }
             return AudioDevice(id: id, uid: uid, name: AudioApplication.clean(Hardware.string(id, kAudioObjectPropertyName)),
                                hasOutput: !Hardware.list(id, kAudioDevicePropertyStreams, scope: kAudioObjectPropertyScopeOutput).isEmpty,
-                               hasInput: !Hardware.list(id, kAudioDevicePropertyStreams, scope: kAudioObjectPropertyScopeInput).isEmpty)
+                               hasInput: !Hardware.list(id, kAudioDevicePropertyStreams, scope: kAudioObjectPropertyScopeInput).isEmpty,
+                               transport: Hardware.read(id, kAudioDevicePropertyTransportType, default: UInt32(0)))
         }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+    /// SF Symbol for the device, from its name (for AirPods and similar) and connection type.
+    var symbol: String { Self.symbol(name: name, transport: transport, output: hasOutput) }
+    static func symbol(name: String, transport: UInt32, output: Bool) -> String {
+        let lower = name.lowercased()
+        let byName: [(String, String)] = [("airpods max", "airpodsmax"), ("airpods pro", "airpods.pro"), ("airpods", "airpods"),
+                                          ("beats", "beats.headphones"), ("headphone", "headphones"), ("headset", "headphones"),
+                                          ("homepod", "homepod.fill"), ("display", "display"), ("monitor", "display")]
+        if let match = byName.first(where: { lower.contains($0.0) }) { return match.1 }
+        switch transport {
+        case kAudioDeviceTransportTypeBuiltIn: return output ? "laptopcomputer" : "mic"
+        case kAudioDeviceTransportTypeBluetooth, kAudioDeviceTransportTypeBluetoothLE: return output ? "headphones" : "mic"
+        case kAudioDeviceTransportTypeHDMI, kAudioDeviceTransportTypeDisplayPort: return "tv"
+        case kAudioDeviceTransportTypeAirPlay: return "airplayaudio"
+        case kAudioDeviceTransportTypeUSB, kAudioDeviceTransportTypeThunderbolt, kAudioDeviceTransportTypeFireWire: return output ? "hifispeaker" : "mic"
+        case kAudioDeviceTransportTypeVirtual, kAudioDeviceTransportTypeAggregate: return "waveform"
+        default: return output ? "speaker.wave.2" : "mic"
+        }
     }
 }
 

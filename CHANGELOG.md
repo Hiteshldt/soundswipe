@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.3 — Preview
+
+- Add a small Donate button in the main popup footer, between the mixing status and Sound Settings. Keep the header link too.
+
 ## 0.5.2 — Preview
 
 - Keep existing app taps alive when returning to 100%, avoiding capture teardown/recreation during slider adjustment.

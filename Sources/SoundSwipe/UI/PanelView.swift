@@ -42,10 +42,7 @@ struct PanelView: View {
                 .frame(width: 24, height: 24).background(accent.gradient, in: RoundedRectangle(cornerRadius: 6))
             Text("SoundSwipe").font(.system(size: 13, weight: .semibold))
             Spacer()
-            Link(destination: AppInfo.support) {
-                Label("Donate", systemImage: "cup.and.saucer")
-                    .font(.system(size: 11)).foregroundStyle(.secondary)
-            }.help("Support SoundSwipe on Ko-fi").accessibilityLabel("Donate to SoundSwipe on Ko-fi")
+            donateLink
             Button(action: openSettings) { Image(systemName: "gearshape").font(.system(size: 13)).foregroundStyle(.secondary).frame(width: 24, height: 24) }
                 .buttonStyle(.plain).help("Settings and keyboard shortcuts").accessibilityLabel("Open settings")
         }.padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 10)
@@ -322,11 +319,21 @@ struct PanelView: View {
 
     // MARK: Footer and components
 
+    private var donateLink: some View {
+        Link(destination: AppInfo.support) {
+            Label("Donate", systemImage: "cup.and.saucer")
+                .font(.system(size: 11)).foregroundStyle(.secondary)
+        }.help("Support SoundSwipe on Ko-fi").accessibilityLabel("Donate to SoundSwipe on Ko-fi")
+    }
+
     private var footer: some View {
         HStack(spacing: 10) {
             Circle().fill(mixingLook ? Color.green : Color.secondary.opacity(0.5)).frame(width: 6, height: 6).padding(.trailing, -4)
             Text(statusText).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
             Spacer()
+            donateLink
+                .padding(.horizontal, 8).frame(height: 22)
+                .background(Color.primary.opacity(0.07), in: Capsule())
             Button("Sound Settings…") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Sound-Settings.extension")!) }
                 .buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(.secondary)
             Button("Quit") { NSApp.terminate(nil) }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.2 — Preview
+
+- Keep existing app taps alive when returning to 100%, avoiding capture teardown/recreation during slider adjustment.
+- Stop automatically retrying a failed audio route on every slider movement; add an explicit Retry button and recovery hint.
+- Add a small Donate button to the popup header, linking to Ko-fi.
+- Add an optional Chrome companion preview with independent 0–100% volume and mute per user-selected tab. Audio stays in Chrome, and playback continues after its popup closes.
+- Package the companion as SoundSwipe-Tabs.zip with a checksum, install instructions, and audio-engine regression tests.
+- Keep native per-app routing separate from the browser companion; individual tabs are controlled in Chrome.
+
 ## 0.5.1 — Preview
 
 - Add a drag-to-Applications DMG, with a ZIP alternative and SHA-256 checksums for both.

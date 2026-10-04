@@ -14,6 +14,8 @@ jobs:
         run: swift --version
       - name: Test
         run: ./scripts/test.sh
+      - name: Test browser audio engine
+        run: node --test Tests/browser-extension/audio-engine.test.mjs
       - name: Build universal preview
         run: ./scripts/build.sh --universal
       - uses: actions/upload-artifact@v7
@@ -24,3 +26,5 @@ jobs:
             dist/SoundSwipe.dmg.sha256
             dist/SoundSwipe.zip
             dist/SoundSwipe.zip.sha256
+            dist/SoundSwipe-Tabs.zip
+            dist/SoundSwipe-Tabs.zip.sha256

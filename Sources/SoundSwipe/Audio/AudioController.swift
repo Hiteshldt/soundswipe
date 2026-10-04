@@ -23,6 +23,7 @@ final class AudioController: ObservableObject {
     @Published private(set) var deviceVolumes: [AudioObjectID: Float] = [:]
     @Published private(set) var mutedDevices: Set<AudioObjectID> = []
     @Published private(set) var mixingEnabled = false
+    @Published private(set) var mixingNeedsRetry = false
     @Published private(set) var controlledApps: Set<String> = []
     @Published var error: String?
     let preferences: Preferences
@@ -200,6 +201,7 @@ final class AudioController: ObservableObject {
     }
 
     func setMixing(_ enabled: Bool) {
+        if enabled { mixingNeedsRetry = false; error = nil }
         mixingEnabled = enabled
         if enabled {
             reconcileMixers()
@@ -210,6 +212,7 @@ final class AudioController: ObservableObject {
                         guard let self else { return }
                         if self.mixers.values.contains(where: \.formatFailed) {
                             self.error = "The device changed to an unsupported audio format. Mixing was stopped and original audio restored."
+                            self.mixingNeedsRetry = true
                             self.setMixing(false)
                         } else {
                             self.mixers.values.forEach { $0.refreshSampleRate() }
@@ -227,7 +230,9 @@ final class AudioController: ObservableObject {
         var mix = mix(for: app); update(&mix)
         preferences.mixes[app.id] = mix == AppMix() ? nil : mix
         // Adjusting an app is an explicit request to control it; macOS asks for audio access the first time.
-        if !mixingEnabled && mix.needsMixing { setMixing(true) } else { reconcileMixers() }
+        // A failed tap must not retry for every mouse movement during a drag.
+        // The user can grant access, then explicitly retry from the banner or Mix switch.
+        if !mixingEnabled && mix.needsMixing && !mixingNeedsRetry { setMixing(true) } else { reconcileMixers() }
         objectWillChange.send()
     }
     func resetMixes() { preferences.mixes = [:]; reconcileMixers(); objectWillChange.send() }
@@ -237,7 +242,10 @@ final class AudioController: ObservableObject {
         for key in Array(mixers.keys) where !present.contains(key) { mixers.removeValue(forKey: key) }
         for app in allApplications {
             let mix = mix(for: app)
-            guard mix.needsMixing else { mixers.removeValue(forKey: app.id); continue }
+            // Keep an already-authorized route at unity gain. Dragging through
+            // 100% must not destroy/recreate its tap and ask for capture again.
+            // Turning Mix off, app exit, or shutdown still releases the route.
+            guard mix.needsMixing || mixers[app.id] != nil else { continue }
             // An unplugged saved route falls back to the system output.
             guard let output = outputs.first(where: { $0.uid == mix.outputUID }) ?? outputs.first(where: { $0.id == outputID }) else {
                 mixers.removeValue(forKey: app.id); continue
@@ -246,7 +254,8 @@ final class AudioController: ObservableObject {
             mixers.removeValue(forKey: app.id)
             do { mixers[app.id] = try ProcessMixer(application: app, output: output, mix: mix) }
             catch {
-                self.error = error.localizedDescription + " Mixing has been stopped; original audio is restored."
+                self.error = error.localizedDescription + " Mixing has been stopped; original audio is restored. After checking access and your device, choose Retry."
+                mixingNeedsRetry = true
                 setMixing(false); return
             }
         }

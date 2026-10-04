@@ -42,6 +42,10 @@ struct PanelView: View {
                 .frame(width: 24, height: 24).background(accent.gradient, in: RoundedRectangle(cornerRadius: 6))
             Text("SoundSwipe").font(.system(size: 13, weight: .semibold))
             Spacer()
+            Link(destination: AppInfo.support) {
+                Label("Donate", systemImage: "cup.and.saucer")
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
+            }.help("Support SoundSwipe on Ko-fi").accessibilityLabel("Donate to SoundSwipe on Ko-fi")
             Button(action: openSettings) { Image(systemName: "gearshape").font(.system(size: 13)).foregroundStyle(.secondary).frame(width: 24, height: 24) }
                 .buttonStyle(.plain).help("Settings and keyboard shortcuts").accessibilityLabel("Open settings")
         }.padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 10)
@@ -140,7 +144,7 @@ struct PanelView: View {
                     .help("Mixing applies per-app volume, EQ, and output. Turn off to restore normal audio instantly.")
             }
             if !mixingLook && !audio.applications.isEmpty {
-                Text("Adjust any app to start mixing. macOS asks for audio access once.")
+                Text(audio.mixingNeedsRetry ? "Check audio access, then choose Retry or turn Mix on." : "Adjust any app to start mixing. System-audio access is required.")
                     .font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -351,6 +355,9 @@ struct PanelView: View {
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
             Text(error).font(.system(size: 11)).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
+            if audio.mixingNeedsRetry {
+                Button("Retry") { audio.setMixing(true) }.controlSize(.small)
+            }
             Button { audio.error = nil } label: { Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)) }.buttonStyle(.plain).accessibilityLabel("Dismiss error")
         }.padding(10).background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
     }

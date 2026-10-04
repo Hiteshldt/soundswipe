@@ -51,3 +51,17 @@ Automated tests cover planar stereo-to-interleaved channel separation and reject
 Verify the DMG with `hdiutil verify dist/SoundSwipe.dmg`, mount it read-only, check the Applications link and bundled version, and verify the mounted app signature. Copy the app to a temporary folder and run `--diagnostics` from that copy. Confirm both architecture slices with `lipo -verify_arch arm64 x86_64`.
 
 On hardware, change the physical device sample rate and switch a Bluetooth device into and out of its call profile. The route must rebuild or stop with an unsupported-format error. Perform the full manual matrix before claiming stable audio support.
+
+## 0.5.2 permission recovery and Chrome companion
+
+After denying audio capture or encountering an unsupported route, drag the app slider again: SoundSwipe must save the level without repeatedly requesting capture. Grant access in Privacy & Security and click Retry or explicitly turn Mix on. A successful route should keep playing while its slider moves, including dragging through 100% and back; its existing tap must remain until Mix is turned off. Test permission renewal after an app update separately; preview signatures are ad-hoc and do not establish a stable Developer ID identity. Verify Donate in the popup opens https://ko-fi.com/hiteshgupta.
+
+Run `node --test Tests/browser-extension/audio-engine.test.mjs` (Node 20+) for independent tab gain/mute, capture failures, cancellation, and teardown. Install the companion following [its README](../browser-extension/README.md) and perform the real toolbar/capture checks there. Verify `SoundSwipe-Tabs.zip` contains a top-level SoundSwipe-Tabs folder with manifest.json, scripts, icons, README, and LICENSE. Check its SHA-256 file.
+
+An optional integration check uses Node 22+, Playwright, and an isolated Chromium profile:
+
+```sh
+node Tests/browser-extension/browser-smoke.cjs
+```
+
+Install Playwright and its Chromium browser separately, or point PLAYWRIGHT_MODULE at the installed module and SOUNDSWIPE_TEST_BROWSER at a compatible Chromium executable. The test measures generated audio through the real popup, worker, offscreen document, and Web Audio graph: independent 20%/80% levels, mute, popup persistence, restore, and closed-tab cleanup. It substitutes Chrome capture authorization and sources; it does **not** validate real toolbar grants, source capture, protected media, or physical output. No user browser profile is used.

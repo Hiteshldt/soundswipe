@@ -37,9 +37,15 @@ EOF
 ditto -c -k --keepParent "$APP" dist/SoundSwipe.zip
 hdiutil create -quiet -ov -volname SoundSwipe -srcfolder "$STAGING" -format UDZO -fs HFS+ dist/SoundSwipe.dmg
 hdiutil verify -quiet dist/SoundSwipe.dmg
+TABS="$STAGING/extension/SoundSwipe-Tabs"
+mkdir -p "$TABS"
+ditto browser-extension "$TABS"
+cp LICENSE "$TABS/LICENSE"
+ditto -c -k --keepParent "$TABS" dist/SoundSwipe-Tabs.zip
 (
     cd dist
     shasum -a 256 SoundSwipe.dmg > SoundSwipe.dmg.sha256
     shasum -a 256 SoundSwipe.zip > SoundSwipe.zip.sha256
+    shasum -a 256 SoundSwipe-Tabs.zip > SoundSwipe-Tabs.zip.sha256
 )
-printf 'Packaged DMG and ZIP with SHA-256 checksums.\n'
+printf 'Packaged app DMG, app ZIP, and Chrome companion ZIP with SHA-256 checksums.\n'

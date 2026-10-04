@@ -1,0 +1,17 @@
+:root { color-scheme: dark; font-family: system-ui, sans-serif; background: #11151a; color: #e7ebef; }
+body { width: 340px; margin: 0; padding: 16px; box-sizing: border-box; }
+h1 { font-size: 16px; margin: 0 0 4px; }
+header p, footer, #empty { color: #a4adb8; font-size: 12px; line-height: 1.5; }
+header p { margin: 0 0 16px; }
+#active, .tab { border: 1px solid #303843; border-radius: 10px; padding: 12px; margin-bottom: 10px; background: #1a2028; }
+#active-title, .title { margin: 0 0 10px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+button { font: inherit; font-size: 12px; border: 1px solid #434f60; border-radius: 6px; background: #26344a; color: #e7ebef; padding: 6px 9px; cursor: pointer; }
+button:hover { background: #334764; }
+button:disabled { opacity: .6; cursor: default; }
+button:focus-visible, input:focus-visible { outline: 2px solid #8bb4fc; outline-offset: 3px; }
+.controls { display: flex; align-items: center; gap: 8px; }
+input[type=range] { flex: 1; min-width: 0; accent-color: #8bb4fc; }
+output { width: 36px; text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; }
+.stop { margin-top: 10px; background: transparent; color: #a4adb8; }
+#error { color: #ffd09b; font-size: 12px; line-height: 1.5; }
+footer { margin-top: 16px; font-size: 11px; }

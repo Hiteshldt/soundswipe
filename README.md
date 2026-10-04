@@ -42,6 +42,8 @@ A ZIP is also available: unzip it and move the app to Applications. When updatin
 3. Use its output menu to pick a device or a 1× / 2× / 3× / 4× boost preset.
 4. Open the slider icon for EQ and balance.
 
+An existing app route stays active when its volume returns to 100%; turn Mix off to release it. If a permission or route attempt fails, further slider movements save your setting without retrying capture. Allow SoundSwipe in Privacy & Security, then click **Retry** or turn **Mix** on. If access keeps being requested after allowing it, quit all copies and open the installed app from Applications; ad-hoc preview signatures can require renewed approval after updates.
+
 Turn off **Mix** to restore normal app playback. Device volume and switching work without capture permission. Audio is processed locally and never recorded or uploaded.
 
 ## What it does
@@ -77,7 +79,7 @@ Turn off **Mix** to restore normal app playback. Device volume and switching wor
 
 Mixing supports stereo, tightly packed 32-bit float PCM routes. Unsupported formats stop mixing and show an error. Some protected sources cannot be captured; Bluetooth call profiles and conferencing apps still need hardware testing.
 
-Browser tabs share their browser’s audio stream, so SoundSwipe controls the app rather than individual tabs. Microphone volume and mute apply to the input device, not individual apps. There is no recording, automatic updater, multi-device output, or AutoEQ yet.
+The Mac app receives Chrome’s combined audio stream. For separate tab volume and mute, try the optional [SoundSwipe Tabs preview](browser-extension/README.md). Its controls live in Chrome’s extension popup, and each tab must be enabled there. Microphone volume and mute apply to the input device, not individual apps. There is no recording, automatic updater, multi-device output, or AutoEQ yet.
 
 See the [roadmap](docs/ROADMAP.md), [changelog](CHANGELOG.md), [architecture](docs/ARCHITECTURE.md), and [test checklist](docs/TESTING.md).
 

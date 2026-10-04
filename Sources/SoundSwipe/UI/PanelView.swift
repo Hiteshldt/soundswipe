@@ -320,9 +320,13 @@ struct PanelView: View {
 
     private var donateLink: some View {
         Link(destination: AppInfo.support) {
-            Label("Donate", systemImage: "cup.and.saucer")
-                .font(.system(size: 11)).foregroundStyle(.secondary)
-        }.help("Support SoundSwipe on Ko-fi").accessibilityLabel("Donate to SoundSwipe on Ko-fi")
+            Label {
+                Text("Donate").foregroundStyle(.primary)
+            } icon: {
+                Image(systemName: "heart.fill").foregroundStyle(.pink)
+            }.font(.system(size: 11, weight: .semibold))
+        }.buttonStyle(.plain)
+            .help("Support SoundSwipe on Ko-fi").accessibilityLabel("Donate to SoundSwipe on Ko-fi")
     }
 
     private var footer: some View {
@@ -331,8 +335,9 @@ struct PanelView: View {
             Text(statusText).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
             Spacer()
             donateLink
-                .padding(.horizontal, 8).frame(height: 22)
-                .background(Color.primary.opacity(0.07), in: Capsule())
+                .padding(.horizontal, 10).frame(height: 24)
+                .background(Color.pink.opacity(0.16), in: Capsule())
+                .overlay(Capsule().strokeBorder(Color.pink.opacity(0.4), lineWidth: 1))
             Button("Sound Settings…") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Sound-Settings.extension")!) }
                 .buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(.secondary)
             Button("Quit") { NSApp.terminate(nil) }

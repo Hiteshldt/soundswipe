@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.5 — Preview
+
+- Give the single footer Donate button a filled heart, clear text, and a pink background and outline so it is easier to find.
+
 ## 0.5.4 — Preview
 
 - Remove the duplicate Donate link from the popup header. Keep one Donate button beside Sound Settings in the footer.

@@ -42,7 +42,6 @@ struct PanelView: View {
                 .frame(width: 24, height: 24).background(accent.gradient, in: RoundedRectangle(cornerRadius: 6))
             Text("SoundSwipe").font(.system(size: 13, weight: .semibold))
             Spacer()
-            donateLink
             Button(action: openSettings) { Image(systemName: "gearshape").font(.system(size: 13)).foregroundStyle(.secondary).frame(width: 24, height: 24) }
                 .buttonStyle(.plain).help("Settings and keyboard shortcuts").accessibilityLabel("Open settings")
         }.padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 10)

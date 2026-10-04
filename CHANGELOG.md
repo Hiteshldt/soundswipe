@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.4 — Preview
+
+- Remove the duplicate Donate link from the popup header. Keep one Donate button beside Sound Settings in the footer.
+
 ## 0.5.3 — Preview
 
 - Add a small Donate button in the main popup footer, between the mixing status and Sound Settings. Keep the header link too.

@@ -7,6 +7,22 @@ struct AudioFailure: LocalizedError {
     var errorDescription: String? { "\(operation) failed (Core Audio \(status))." }
 }
 
+/// Input and output on a duplex device have independent mute restore levels.
+struct MuteRestoreLevels {
+    private struct Key: Hashable {
+        let device: AudioObjectID
+        let scope: AudioObjectPropertyScope
+    }
+    private var levels: [Key: Float] = [:]
+    mutating func remember(_ volume: Float?, device: AudioObjectID, scope: AudioObjectPropertyScope) {
+        guard let volume, volume.isFinite, volume > 0 else { return }
+        levels[Key(device: device, scope: scope)] = min(1, volume)
+    }
+    func volume(device: AudioObjectID, scope: AudioObjectPropertyScope) -> Float {
+        levels[Key(device: device, scope: scope)] ?? 0.5
+    }
+}
+
 enum Hardware {
     static let system = AudioObjectID(kAudioObjectSystemObject)
     static func address(_ selector: AudioObjectPropertySelector, scope: AudioObjectPropertyScope = kAudioObjectPropertyScopeGlobal, element: UInt32 = 0) -> AudioObjectPropertyAddress {

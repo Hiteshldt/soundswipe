@@ -2,7 +2,7 @@
 #include <CoreAudio/CoreAudio.h>
 #include <stdbool.h>
 /// Upper bound for per-app gain. Values above 1.0 pass through a soft limiter.
-#define SW_MAX_GAIN 2.0f
+#define SW_MAX_GAIN 4.0f
 /// Graphic EQ: 10 one-octave peaking bands from 32 Hz to 16 kHz, each within ±SW_EQ_RANGE dB.
 #define SW_EQ_BANDS 10
 #define SW_EQ_RANGE 12.0f

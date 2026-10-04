@@ -5,8 +5,18 @@ export CLANG_MODULE_CACHE_PATH="$PWD/.build/ModuleCache"
 export SWIFTPM_MODULECACHE_OVERRIDE="$PWD/.build/ModuleCache"
 mkdir -p dist
 if [[ "${1:-}" == "--universal" ]]; then
-    swift build -c release --arch arm64 --arch x86_64 --disable-sandbox
-    BINARY_DIR=$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path --disable-sandbox)
+    # SwiftPM's multi-arch build invokes xcbuild, which Command Line Tools do not ship.
+    # Build each slice directly so universal previews work with CLT as well as Xcode.
+    SLICES=()
+    for ARCH in arm64 x86_64; do
+        TRIPLE="$ARCH-apple-macosx14.0"
+        swift build -c release --triple "$TRIPLE" --disable-sandbox
+        SLICE_DIR=$(swift build -c release --triple "$TRIPLE" --show-bin-path --disable-sandbox)
+        SLICES+=("$SLICE_DIR/SoundSwipe")
+    done
+    BINARY_DIR="$PWD/.build/universal-release"
+    mkdir -p "$BINARY_DIR"
+    lipo -create "${SLICES[@]}" -output "$BINARY_DIR/SoundSwipe"
 else
     swift build -c release --disable-sandbox
     BINARY_DIR=$(swift build -c release --show-bin-path --disable-sandbox)

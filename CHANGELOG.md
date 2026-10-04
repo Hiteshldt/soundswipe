@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.0 — Preview
+
+- Per-app boost up to 400%, with 1× / 2× / 3× / 4× presets in the app output menu and a correctly positioned 100% marker.
+- Independent microphone and speaker mute restore levels on duplex devices; hardware mute now remembers the prior level too.
+- Clamp restored volume, balance, and legacy EQ values to supported ranges.
+- Bypass EQ bands at or above the device’s Nyquist frequency instead of moving their boost into lower frequencies.
+- Reject surround output layouts after a live format change so the controller can stop mixing and restore original playback.
+- Cancel shortcut recording when switching Settings tabs or leaving the window, restoring global shortcuts.
+- Build universal previews with Command Line Tools as well as Xcode, without requiring `xcbuild`.
+- Handle missing snapshot option values without indexing beyond the arguments array.
+- Add Ko-fi to About, the README, and GitHub funding configuration.
+- Expand DSP and settings regression coverage; document the FineTune-inspired feature roadmap.
+
 ## 0.4.0 — Preview
 
 - New Output Devices list: every output with one-click switching, its own volume slider and mute, and device icons (AirPods, headphones, speakers, TV, AirPlay).

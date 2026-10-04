@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest an improvement to SoundSwipe.
+title: "[Feature]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: Describe your audio setup and the problem you want to solve.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe how you would use the feature, and any alternatives you tried.
+    validations:
+      required: true
+  - type: input
+    id: setup
+    attributes:
+      label: macOS version and audio devices

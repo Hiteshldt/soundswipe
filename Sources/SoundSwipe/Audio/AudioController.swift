@@ -38,7 +38,7 @@ final class AudioController: ObservableObject {
     private var meterTimer: Timer?
     private var panelVisible = false
     private var resumeAfterWake = false
-    private var volumesBeforeMute: [AudioObjectID: Float] = [:]
+    private var volumesBeforeMute = MuteRestoreLevels()
     private var workspaceObservers: [NSObjectProtocol] = []
     var outputs: [AudioDevice] { devices.filter(\.hasOutput) }
     var inputs: [AudioDevice] { devices.filter(\.hasInput) }
@@ -146,12 +146,13 @@ final class AudioController: ObservableObject {
     }
     /// Prefers the device's mute switch; falls back to volume 0 and restores the previous level.
     private func toggleMute(device: AudioObjectID, scope: AudioObjectPropertyScope, muted: Bool, volume: Float?, unsupported: String) {
-        let saved = volumesBeforeMute[device] ?? 0.5
+        let saved = volumesBeforeMute.volume(device: device, scope: scope)
+        if !muted { volumesBeforeMute.remember(volume, device: device, scope: scope) }
         if Hardware.writable(device, kAudioDevicePropertyMute, scope: scope) {
             perform { try Hardware.write(device, kAudioDevicePropertyMute, UInt32(muted ? 0 : 1), scope: scope) }
             if muted && volume == 0 { setVolume(saved, device: device, scope: scope) }
         } else if let volume {
-            if volume > 0 { volumesBeforeMute[device] = volume; setVolume(0, device: device, scope: scope) } else { setVolume(saved, device: device, scope: scope) }
+            if volume > 0 { setVolume(0, device: device, scope: scope) } else { setVolume(saved, device: device, scope: scope) }
         } else { error = unsupported }
         refreshVolumes()
     }

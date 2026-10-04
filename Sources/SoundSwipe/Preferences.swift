@@ -2,7 +2,7 @@ import Foundation
 
 struct AppMix: Codable, Equatable {
     /// 1 is unchanged; up to `maxVolume` boosts through the DSP soft limiter.
-    static let maxVolume: Float = 2
+    static let maxVolume: Float = 4
     static let eqRange: Float = 12
     static let eqFrequencies: [Float] = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
     static let flatEQ = [Float](repeating: 0, count: 10)
@@ -19,18 +19,18 @@ struct AppMix: Codable, Equatable {
     // Decode leniently so settings saved by earlier versions keep working.
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        volume = try c.decodeIfPresent(Float.self, forKey: .volume) ?? 1
+        volume = min(Self.maxVolume, max(0, try c.decodeIfPresent(Float.self, forKey: .volume) ?? 1))
         muted = try c.decodeIfPresent(Bool.self, forKey: .muted) ?? false
         outputUID = try c.decodeIfPresent(String.self, forKey: .outputUID)
         eq = Self.normalizedEQ(try c.decodeIfPresent([Float].self, forKey: .eq) ?? [])
         eqEnabled = try c.decodeIfPresent(Bool.self, forKey: .eqEnabled) ?? true
-        balance = try c.decodeIfPresent(Float.self, forKey: .balance) ?? 0
+        balance = min(1, max(-1, try c.decodeIfPresent(Float.self, forKey: .balance) ?? 0))
     }
     /// 0.3.x stored bass/mid/treble; spread those across the matching octave bands.
     static func normalizedEQ(_ bands: [Float]) -> [Float] {
         switch bands.count {
         case 10: bands.map { min(eqRange, max(-eqRange, $0.isFinite ? $0 : 0)) }
-        case 3: [bands[0], bands[0], bands[0] * 0.5, 0, bands[1] * 0.5, bands[1], bands[1] * 0.5, bands[2] * 0.5, bands[2], bands[2]]
+        case 3: normalizedEQ([bands[0], bands[0], bands[0] * 0.5, 0, bands[1] * 0.5, bands[1], bands[1] * 0.5, bands[2] * 0.5, bands[2], bands[2]])
         default: flatEQ
         }
     }
@@ -88,7 +88,17 @@ enum EQPreset: String, CaseIterable, Identifiable {
     static func matching(_ bands: [Float]) -> EQPreset? { allCases.first { $0.bands == bands } }
 }
 
+/// Command-line diagnostics must tolerate an option with no following value.
+enum LaunchArguments {
+    static func value(after option: String, in arguments: [String]) -> String? {
+        guard let index = arguments.firstIndex(of: option), arguments.indices.contains(index + 1),
+              !arguments[index + 1].hasPrefix("--") else { return nil }
+        return arguments[index + 1]
+    }
+}
+
 enum AppInfo {
+    static let support = URL(string: "https://ko-fi.com/hiteshgupta")!
     static var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev" }
     static var website: URL? {
         (Bundle.main.object(forInfoDictionaryKey: "DeveloperWebsite") as? String).flatMap(URL.init(string:)).flatMap { $0.scheme == "https" ? $0 : nil }

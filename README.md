@@ -5,16 +5,19 @@
 <h1 align="center">SoundSwipe</h1>
 
 <p align="center"><b>A little more control over your Mac’s audio.</b><br>
-Per-app volume, 10-band EQ, boost, and output routing — from a tiny native menu bar app.</p>
+Per-app volume, 10-band EQ, up to 4× boost, and output routing — from a tiny native menu bar app.</p>
 
 <p align="center">
   <a href="https://github.com/Hiteshldt/soundswipe/actions/workflows/ci.yml"><img src="https://github.com/Hiteshldt/soundswipe/actions/workflows/ci.yml/badge.svg" alt="Build"></a>
   <a href="https://github.com/Hiteshldt/soundswipe/releases"><img src="https://img.shields.io/github/v/release/Hiteshldt/soundswipe?include_prereleases&label=download" alt="Download"></a>
   <img src="https://img.shields.io/badge/macOS-14.2%2B-blue" alt="macOS 14.2+">
+  <a href="https://ko-fi.com/hiteshgupta"><img src="https://img.shields.io/badge/Support-Ko--fi-ff5e5b" alt="Support on Ko-fi"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license"></a>
 </p>
 
-SoundSwipe is a free, open-source macOS menu bar app for output and input control, individual app volumes, volume boost, and per-app audio routing — an alternative in the spirit of [Background Music](https://github.com/kyleneideck/BackgroundMusic) and [SoundSource](https://rogueamoeba.com/soundsource/). It is built with SwiftUI, AppKit, Core Audio, and a tiny C audio kernel: a ~3 MB universal app with no Electron, package dependencies, account, telemetry, or network access.
+<p align="center"><a href="https://github.com/Hiteshldt/soundswipe/releases"><b>Download for macOS</b></a> · <a href="#use">Quick start</a> · <a href="https://ko-fi.com/hiteshgupta">Buy me a coffee</a></p>
+
+SoundSwipe is a free, open-source macOS menu bar app for output and input control, individual app volumes, volume boost, and per-app audio routing — an alternative in the spirit of [Background Music](https://github.com/kyleneideck/BackgroundMusic) and [SoundSource](https://rogueamoeba.com/soundsource/). It is built with SwiftUI, AppKit, Core Audio, and a tiny C audio kernel: a ~4 MB universal app with no Electron, package dependencies, account, telemetry, or network access.
 
 > **Preview:** device controls and the interface are implemented and tested. Per-app mixing uses Apple’s Core Audio process taps and still needs wider validation across hardware and macOS releases. Preview builds are not yet notarized.
 
@@ -27,7 +30,7 @@ SoundSwipe is a free, open-source macOS menu bar app for output and input contro
 - **Microphone in-use indicator** showing which apps are listening, plus one-click microphone mute (and a shortcut for it).
 - **All output devices at a glance** — switch with one click and set each device's volume independently, with device icons (AirPods, headphones, speakers, TV). Fixed-volume devices are labeled.
 - **Microphone switching**, input level, and mute.
-- **Per-app volume from 0–200%.** Boost above 100% passes through a soft limiter so it never hard-clips; at or below 100% audio is untouched.
+- **Per-app volume from 0–400%.** Choose 1× / 2× / 3× / 4× from the app’s output menu → **Volume boost**, or use the slider. Boost passes through a soft limiter to keep output bounded; unity gain with EQ off and balance centered leaves audio unchanged.
 - **Per-app 10-band EQ** (32 Hz–16 kHz, ±12 dB) with an on/off switch and 16 presets (Bass Boost, Vocal Booster, Spoken Word, Rock, Small Speakers…), plus left/right balance.
 - **Per-app output routing** — send music to headphones while calls stay on speakers. No driver or kernel extension to install.
 - **Live segmented level meters** for every adjusted app (only while the panel is open), and a 100% marker on each app's slider.
@@ -35,7 +38,7 @@ SoundSwipe is a free, open-source macOS menu bar app for output and input contro
 - **Global keyboard shortcuts** you record yourself: show panel, mute, volume up/down, next output, mute microphone. No Accessibility permission needed.
 - **Remembers your mix** per app; disconnected routes fall back to the current output. Optionally turns mixing on at launch, and restores it after sleep.
 - **Launch at login.**
-- **Lightweight by design:** ~0% CPU and ~14 MB memory when idle. Activity checks and meters run only while the panel is open, and audio routes exist only for apps you have changed.
+- **Lightweight by design:** activity polling and meters run only while the panel is open, and audio routes exist only for apps you have changed.
 
 <p align="center">
   <img src="docs/images/panel-light.png" width="420" alt="SoundSwipe in light mode">
@@ -87,6 +90,12 @@ See [architecture](docs/ARCHITECTURE.md), [validation](docs/TESTING.md), the [ro
 Issues and pull requests are welcome — read [CONTRIBUTING.md](CONTRIBUTING.md). Report security issues privately as described in [SECURITY.md](SECURITY.md).
 
 SoundSwipe is original code inspired by Background Music and SoundSource; it includes none of their code or assets and is not affiliated with either. Audio routing uses Apple’s [Core Audio process taps](https://developer.apple.com/documentation/coreaudio/capturing-system-audio-with-core-audio-taps).
+
+## Support
+
+SoundSwipe is free and open source. If it helps you, you can [buy me a coffee on Ko-fi](https://ko-fi.com/hiteshgupta). Support is optional; every feature is available without payment.
+
+You can also help by starring the repository, sharing a short demo, or reporting a reproducible bug with your macOS version and audio device. See the [FineTune-inspired roadmap](docs/ROADMAP.md#finetune-inspired-direction) for what is implemented and what comes next.
 
 ## License
 

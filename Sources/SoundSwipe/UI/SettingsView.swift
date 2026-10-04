@@ -25,6 +25,10 @@ struct SettingsView: View {
         }
         .frame(width: 500, height: 440)
         .onDisappear { endRecording() }
+        .onChange(of: tab) { _, _ in endRecording() }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in
+            if recording != nil { endRecording() }
+        }
     }
 
     private var general: some View {
@@ -94,6 +98,9 @@ struct SettingsView: View {
             HStack(spacing: 14) {
                 if let url = AppInfo.repository { Link("Source Code", destination: url) }
                 if let url = AppInfo.repository?.appendingPathComponent("issues") { Link("Report an Issue", destination: url) }
+            }.font(.callout)
+            Link(destination: AppInfo.support) {
+                Label("Buy me a coffee", systemImage: "cup.and.saucer.fill")
             }.font(.callout)
             Spacer()
             VStack(spacing: 4) {

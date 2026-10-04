@@ -65,7 +65,8 @@ static void updateEQ(SWMixer *m) {
     static const double freqs[SW_EQ_BANDS] = { 32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000 };
     bool active = false;
     for (int i = 0; i < SW_EQ_BANDS; i++) {
-        const bool on = fabsf(db[i]) > 0.01f;
+        // Bands above Nyquist cannot be represented. Do not fold their boost into audible bands.
+        const bool on = fabsf(db[i]) > 0.01f && freqs[i] < rate * 0.5;
         m->bands[i] = peaking(freqs[i], db[i], rate);
         // A band that turns on starts from silence to avoid a click; running bands keep their memory.
         if (on && !m->bandActive[i]) memset(m->z[i], 0, sizeof m->z[i]);
@@ -97,7 +98,7 @@ OSStatus SWMixerRender(AudioObjectID device, const AudioTimeStamp *now,
     UInt32 inChannels = 0, outChannels = 0;
     for (UInt32 b = 0; b < input->mNumberBuffers; b++) inChannels += input->mBuffers[b].mNumberChannels;
     for (UInt32 b = 0; b < output->mNumberBuffers; b++) outChannels += output->mBuffers[b].mNumberChannels;
-    if (inChannels != 2 || outChannels < 2) { atomic_store(&m->failed, true); return noErr; }
+    if (inChannels != 2 || outChannels != 2) { atomic_store(&m->failed, true); return noErr; }
     UInt32 frames = UINT32_MAX;
     for (UInt32 b = 0; b < input->mNumberBuffers; b++) {
         const AudioBuffer *a = &input->mBuffers[b];

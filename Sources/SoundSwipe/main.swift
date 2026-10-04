@@ -50,8 +50,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
         shortcuts.register(preferences.shortcuts)
         if CommandLine.arguments.contains("--show") { togglePanel() }
-        if let index = CommandLine.arguments.firstIndex(of: "--snapshot"), CommandLine.arguments.count > index + 1 {
-            snapshot(to: CommandLine.arguments[index + 1])
+        if let path = LaunchArguments.value(after: "--snapshot", in: CommandLine.arguments) {
+            snapshot(to: path)
         }
     }
     /// Renders the real panel (or a Settings tab with `--settings N`) to a PNG without Screen Recording permission. `--light` forces light mode.
@@ -60,14 +60,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         if arguments.contains("--light") { NSApp.appearance = NSAppearance(named: .aqua) }
         if arguments.contains("--dark") { NSApp.appearance = NSAppearance(named: .darkAqua) }
         audio.setPanelVisible(true)
-        if let expand = arguments.firstIndex(of: "--expand").map({ arguments[$0 + 1] }) { PanelView.snapshotExpanded = expand }
-        if let id = arguments.firstIndex(of: "--sample-mix").map({ arguments[$0 + 1] }) {
+        if let expand = LaunchArguments.value(after: "--expand", in: arguments) { PanelView.snapshotExpanded = expand }
+        if let id = LaunchArguments.value(after: "--sample-mix", in: arguments) {
             var mix = AppMix(volume: 1.35); mix.eq = EQPreset.trebleBoost.bands
             preferences.mixes[id] = mix
             PanelView.snapshotMixingLook = true
         }
         let host: NSView
-        if let tab = arguments.firstIndex(of: "--settings").flatMap({ Int(arguments[$0 + 1]) }) {
+        if let tab = LaunchArguments.value(after: "--settings", in: arguments).flatMap(Int.init) {
             host = NSHostingView(rootView: SettingsView(audio: audio, preferences: preferences, shortcuts: shortcuts, initialTab: tab)
                 .background(Color(nsColor: .windowBackgroundColor)))
         } else {

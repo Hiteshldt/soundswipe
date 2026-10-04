@@ -16,3 +16,21 @@
 - More channel layouts, device-specific sample-rate coverage, and audio profiles.
 
 These features are not represented as working controls in the current interface.
+
+## FineTune-inspired direction
+
+SoundSwipe aims for the same convenient menu bar workflow, while keeping its own implementation and MIT license. This is a capability roadmap, not a claim of feature parity.
+
+| Capability | SoundSwipe today | Next step |
+| --- | --- | --- |
+| Per-app volume and boost | 0–400%, mute, 1× / 2× / 3× / 4× presets | Hardware validation across supported outputs |
+| EQ | 10 bands, 16 presets, balance, EQ bypass | Save and name custom presets |
+| Routing | One output per app; fallback and reconnect | Simultaneous multi-device output with clock/drift handling |
+| App visibility | Active/recent apps and adjusted running apps | Pin and ignore apps with explicit tap teardown |
+| Devices | Output/input selection, hardware volume, microphone mute | Priority order, hidden devices, device inspector |
+| Headphone correction | Not implemented | AutoEQ profile import and per-device processing |
+| Keyboard | Recorded global shortcuts for system controls | Per-app hotkeys and full popup row navigation |
+| Appearance | Native system light/dark appearance | Explicit theme, density, and menu bar icon choices |
+| Distribution | Universal preview ZIP, ad-hoc signed | Developer ID signing, notarization, then stable release and Homebrew |
+
+Prioritize audio reliability and distribution first, followed by app visibility, saved EQ presets, and keyboard navigation. Multi-device routing and AutoEQ need separate DSP design and hardware testing.

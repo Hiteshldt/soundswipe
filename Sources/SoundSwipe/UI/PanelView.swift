@@ -184,13 +184,18 @@ struct PanelView: View {
                         audio.updateMix(app) { $0.muted.toggle() }
                     }
                     Slider(value: Binding(get: { Double(audio.mix(for: app).volume) }, set: { value in
-                        // Snap to 100% so the unchanged position is easy to find on a 0–200% slider.
+                        // Snap to 100% so the unchanged position is easy to find on a 0–400% slider.
                         let volume = abs(value - 1) < 0.04 ? 1 : Float(value)
                         audio.updateMix(app) { $0.volume = volume; $0.muted = false }
                     }), in: 0...Double(AppMix.maxVolume))
                         .controlSize(.small).tint(mix.volume > 1.001 ? .orange : accent)
-                        // Marks 100%, the unchanged level, at the slider's center.
-                        .background { Capsule().fill(Color.primary.opacity(0.45)).frame(width: 2, height: 10) }
+                        // Keep the unity marker aligned when the supported boost range changes.
+                        .background {
+                            GeometryReader { geometry in
+                                Capsule().fill(Color.primary.opacity(0.45)).frame(width: 2, height: 10)
+                                    .position(x: 6 + max(0, geometry.size.width - 12) / CGFloat(AppMix.maxVolume), y: geometry.size.height / 2)
+                            }
+                        }
                         .accessibilityLabel("\(app.name) volume").help("100% is unchanged. Above 100% boosts with a limiter.")
                     percentage(mix.muted ? 0 : mix.volume)
                     SegmentMeter(levels: audio.levels, id: app.id)
@@ -233,6 +238,13 @@ struct PanelView: View {
                 }
             }
             Divider()
+            Menu("Volume boost") {
+                ForEach(1...Int(AppMix.maxVolume), id: \.self) { multiplier in
+                    Button("\(multiplier)× (\(multiplier * 100)%)") {
+                        audio.updateMix(app) { $0.volume = Float(multiplier); $0.muted = false }
+                    }
+                }
+            }
             Button("Reset \(app.name)") { audio.updateMix(app) { $0 = AppMix() } }
         } label: {
             HStack(spacing: 5) {

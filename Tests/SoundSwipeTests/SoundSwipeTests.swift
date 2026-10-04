@@ -15,6 +15,52 @@ struct SoundSwipeTests {
         mix.muted = true
         #expect(mix.effectiveGain == 0)
     }
+    @Test func testSavedMixClampsControlsAndLegacyEQ() throws {
+        let data = #"{"volume":9,"balance":-4,"eq":[100,-100,48]}"#.data(using: .utf8)!
+        let mix = try JSONDecoder().decode(AppMix.self, from: data)
+        #expect(mix.volume == AppMix.maxVolume)
+        #expect(mix.balance == -1)
+        #expect(mix.eq.count == 10 && mix.eq.allSatisfy { $0.isFinite && abs($0) <= AppMix.eqRange })
+        let legacy = AppMix.normalizedEQ([.nan, .infinity, -.infinity])
+        #expect(legacy == AppMix.flatEQ)
+    }
+    @Test func testMuteRestoreSeparatesDuplexDeviceScopes() {
+        var levels = MuteRestoreLevels()
+        levels.remember(0.8, device: 42, scope: kAudioObjectPropertyScopeOutput)
+        levels.remember(0.2, device: 42, scope: kAudioObjectPropertyScopeInput)
+        levels.remember(0, device: 42, scope: kAudioObjectPropertyScopeOutput)
+        levels.remember(.nan, device: 42, scope: kAudioObjectPropertyScopeInput)
+        #expect(levels.volume(device: 42, scope: kAudioObjectPropertyScopeOutput) == 0.8)
+        #expect(levels.volume(device: 42, scope: kAudioObjectPropertyScopeInput) == 0.2)
+        #expect(levels.volume(device: 99, scope: kAudioObjectPropertyScopeOutput) == 0.5)
+    }
+    @Test func testSnapshotArgumentsHandleMissingValues() {
+        #expect(LaunchArguments.value(after: "--expand", in: ["app", "--expand"]) == nil)
+        #expect(LaunchArguments.value(after: "--expand", in: ["app", "--expand", "--dark"]) == nil)
+        #expect(LaunchArguments.value(after: "--settings", in: ["app"]) == nil)
+        #expect(LaunchArguments.value(after: "--snapshot", in: ["app", "--snapshot", "/tmp/a b.png"]) == "/tmp/a b.png")
+    }
+    @Test func testDSPRejectsSurroundOutputAndClearsBuffers() {
+        let state = SWMixerCreate()!
+        defer { SWMixerDestroy(state) }
+        let output = render(state, input: Array(repeating: 0.5, count: 12), outputChannels: 6)
+        #expect(output.allSatisfy { $0 == 0 })
+        #expect(SWMixerFormatFailed(state))
+    }
+    @Test func testDSPBypassesEQAboveNyquistAndRestoresAtHigherRate() {
+        let state = SWMixerCreate()!
+        defer { SWMixerDestroy(state) }
+        var eq = AppMix.flatEQ
+        eq[9] = 12
+        eq.withUnsafeBufferPointer { SWMixerSetEQ(state, $0.baseAddress, Int32($0.count)) }
+        SWMixerSetSampleRate(state, 8000)
+        let signal = (0..<4096).map { Float(0.25 * sin(2 * .pi * 16000 * Double($0) / 48000)) }
+        #expect(render(state, input: signal) == signal)
+        SWMixerSetSampleRate(state, 48000)
+        #expect(render(state, input: signal) != signal)
+        SWMixerSetSampleRate(state, 8000)
+        #expect(render(state, input: signal) == signal)
+    }
     @Test func testSettingsRoundTrip() {
         let name = "SoundSwipeTests.\(UUID())"
         let defaults = UserDefaults(suiteName: name)!
@@ -67,6 +113,15 @@ struct SoundSwipeTests {
         mix.volume = 1.0005
         #expect(!mix.needsMixing)
     }
+    @Test func testDSPFourTimesBoostBoundsFullScaleSamples() {
+        let state = SWMixerCreate()!
+        defer { SWMixerDestroy(state) }
+        #expect(AppMix.maxVolume == Float(SW_MAX_GAIN))
+        SWMixerSetGain(state, 4)
+        let output = render(state, input: Array(repeating: [Float(1), -1], count: 10000).flatMap { $0 })
+        #expect(output.allSatisfy { $0.isFinite && abs($0) <= 1 })
+        #expect(output.suffix(2).first! > 0.99 && output.last! < -0.99)
+    }
     @Test func testDSPUnityLeavesLoudSamplesUntouched() {
         let state = SWMixerCreate()!
         defer { SWMixerDestroy(state) }
@@ -76,10 +131,10 @@ struct SoundSwipeTests {
         let state = SWMixerCreate()!
         defer { SWMixerDestroy(state) }
         SWMixerSetGain(state, 50)
-        // Let the gain ramp settle at the 2x ceiling, then probe the limiter curve.
+        // Let the gain ramp settle at the 4x ceiling, then probe the limiter curve.
         _ = render(state, input: Array(repeating: 0, count: 20000))
-        let output = render(state, input: [0.1, -0.1, 0.45, -0.45, 0.8, -0.8, 1, -1])
-        #expect(abs(output[0] - 0.2) < 0.001)
+        let output = render(state, input: [0.1, -0.1, 0.225, -0.225, 0.4, -0.4, 0.5, -0.5])
+        #expect(abs(output[0] - 0.4) < 0.001)
         #expect(output.allSatisfy { abs($0) < 1 })
         #expect(output[0] < output[2] && output[2] < output[4] && output[4] < output[6])
         #expect(output[1] == -output[0] && output[7] == -output[6])
@@ -172,12 +227,12 @@ struct SoundSwipeTests {
         #expect(AudioDevice.symbol(name: "External Headphones", transport: kAudioDeviceTransportTypeBuiltIn, output: true) == "headphones")
         #expect(AudioDevice.symbol(name: "LG TV", transport: kAudioDeviceTransportTypeHDMI, output: true) == "tv")
     }
-    private func render(_ state: OpaquePointer, input: [Float], inputChannels: UInt32 = 2) -> [Float] {
+    private func render(_ state: OpaquePointer, input: [Float], inputChannels: UInt32 = 2, outputChannels: UInt32 = 2) -> [Float] {
         var source = input, result = [Float](repeating: 99, count: input.count)
         source.withUnsafeMutableBytes { src in
             result.withUnsafeMutableBytes { dst in
                 var inputList = AudioBufferList(mNumberBuffers: 1, mBuffers: AudioBuffer(mNumberChannels: inputChannels, mDataByteSize: UInt32(src.count), mData: src.baseAddress))
-                var outputList = AudioBufferList(mNumberBuffers: 1, mBuffers: AudioBuffer(mNumberChannels: 2, mDataByteSize: UInt32(dst.count), mData: dst.baseAddress))
+                var outputList = AudioBufferList(mNumberBuffers: 1, mBuffers: AudioBuffer(mNumberChannels: outputChannels, mDataByteSize: UInt32(dst.count), mData: dst.baseAddress))
                 var time = AudioTimeStamp()
                 #expect(SWMixerRender(0, &time, &inputList, &time, &outputList, &time, UnsafeMutableRawPointer(state)) == noErr)
             }

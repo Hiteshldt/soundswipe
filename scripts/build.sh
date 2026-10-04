@@ -34,6 +34,6 @@ else
     codesign --force --sign - "$APP"
 fi
 codesign --verify --strict "$APP"
-ditto -c -k --keepParent "$APP" dist/SoundSwipe.zip
+./scripts/package.sh
 printf 'Built %s\n' "$APP"
-du -sh "$APP" dist/SoundSwipe.zip
+du -sh "$APP" dist/SoundSwipe.dmg dist/SoundSwipe.zip

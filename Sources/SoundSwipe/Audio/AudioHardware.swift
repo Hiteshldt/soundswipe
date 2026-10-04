@@ -23,6 +23,35 @@ struct MuteRestoreLevels {
     }
 }
 
+/// Compare actual route formats, rather than rebuilding on duplicate notifications.
+struct AudioRouteFormat: Equatable {
+    let sampleRate: Double
+    let streams: [Stream]
+    struct Stream: Equatable {
+        let id: AudioObjectID
+        let sampleRate: Double
+        let formatID: UInt32
+        let flags: UInt32
+        let bytesPerPacket: UInt32
+        let framesPerPacket: UInt32
+        let bytesPerFrame: UInt32
+        let channels: UInt32
+        let bitsPerChannel: UInt32
+        init(id: AudioObjectID, format: AudioStreamBasicDescription) {
+            self.id = id; sampleRate = format.mSampleRate; formatID = format.mFormatID
+            flags = format.mFormatFlags; bytesPerPacket = format.mBytesPerPacket
+            framesPerPacket = format.mFramesPerPacket; bytesPerFrame = format.mBytesPerFrame
+            channels = format.mChannelsPerFrame; bitsPerChannel = format.mBitsPerChannel
+        }
+    }
+    static func read(_ device: AudioObjectID) -> Self {
+        Self(sampleRate: Hardware.read(device, kAudioDevicePropertyNominalSampleRate, default: Float64(0)),
+             streams: Hardware.list(device, kAudioDevicePropertyStreams, scope: kAudioObjectPropertyScopeOutput).sorted().map {
+                 Stream(id: $0, format: Hardware.read($0, kAudioStreamPropertyVirtualFormat, default: AudioStreamBasicDescription()))
+             })
+    }
+}
+
 enum Hardware {
     static let system = AudioObjectID(kAudioObjectSystemObject)
     static func address(_ selector: AudioObjectPropertySelector, scope: AudioObjectPropertyScope = kAudioObjectPropertyScopeGlobal, element: UInt32 = 0) -> AudioObjectPropertyAddress {

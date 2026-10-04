@@ -7,8 +7,9 @@ import Combine
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     let preferences: Preferences = {
-        // `--snapshot --sample-mix` renders from a throwaway settings store so screenshots never touch real settings.
-        guard CommandLine.arguments.contains("--sample-mix"), let defaults = UserDefaults(suiteName: "app.soundswipe.snapshot") else { return Preferences() }
+        // Every snapshot uses a throwaway store, including those without sample mixes.
+        // Real mix-at-launch settings must never create audio taps in diagnostics.
+        guard CommandLine.arguments.contains("--snapshot"), let defaults = UserDefaults(suiteName: "app.soundswipe.snapshot") else { return Preferences() }
         defaults.removePersistentDomain(forName: "app.soundswipe.snapshot")
         return Preferences(defaults: defaults)
     }()

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.1 — Preview
+
+- Add a drag-to-Applications DMG, with a ZIP alternative and SHA-256 checksums for both.
+- Put installation, first launch, updates, and troubleshooting near the top of the README.
+- Reject padded PCM frames, inconsistent packet sizes, and invalid sample rates before starting a mixer.
+- Rebuild and revalidate audio routes when device streams, sample rates, or virtual formats change.
+- Use isolated preferences for every screenshot run, so saved mix-at-launch settings cannot start audio capture.
+- Exclude other SoundSwipe copies from the app list and microphone indicator, avoiding feedback from capturing the mixer's own output.
+- Add planar-stereo and PCM-format regression coverage.
+
 ## 0.5.0 — Preview
 
 - Per-app boost up to 400%, with 1× / 2× / 3× / 4× presets in the app output menu and a correctly positioned 100% marker.

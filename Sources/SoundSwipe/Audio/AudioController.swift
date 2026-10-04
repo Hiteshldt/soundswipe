@@ -32,6 +32,7 @@ final class AudioController: ObservableObject {
     private var lastActive: [String: Date] = [:]
     private var observations: [AudioObservation] = []
     private var deviceObservations: [AudioObservation] = []
+    private var routeFormats: [AudioObjectID: AudioRouteFormat] = [:]
     private var mixers: [String: ProcessMixer] = [:]
     private var healthTimer: Timer?
     private var panelTimer: Timer?
@@ -90,11 +91,31 @@ final class AudioController: ObservableObject {
         devices = newDevices
         outputID = Hardware.read(Hardware.system, kAudioHardwarePropertyDefaultOutputDevice, default: AudioObjectID(0))
         inputID = Hardware.read(Hardware.system, kAudioHardwarePropertyDefaultInputDevice, default: AudioObjectID(0))
-        if oldOutput != outputID || oldInput != inputID || deviceChanged || deviceObservations.isEmpty {
+        let newFormats = Dictionary(uniqueKeysWithValues: outputs.map { ($0.id, AudioRouteFormat.read($0.id)) })
+        let formatChanged = routeFormats != newFormats
+        routeFormats = newFormats
+        if formatChanged || oldOutput != outputID || oldInput != inputID || deviceChanged || deviceObservations.isEmpty {
             deviceObservations.removeAll()
             // Every output is observed so the device list stays live; only the default input is shown.
             let watched = outputs.map { ($0.id, kAudioObjectPropertyScopeOutput) } + (inputID != 0 ? [(inputID, kAudioObjectPropertyScopeInput)] : [])
             for (id, scope) in watched {
+                // Revalidate byte layout and channel count after a Bluetooth
+                // profile, stream configuration, or sample-rate change.
+                if scope == kAudioObjectPropertyScopeOutput {
+                    for selector in [kAudioDevicePropertyStreams, kAudioDevicePropertyStreamConfiguration] {
+                        deviceObservations.append(AudioObservation(id, selector: selector, scope: scope) { [weak self] in
+                            Task { @MainActor in self?.refresh() }
+                        })
+                    }
+                    deviceObservations.append(AudioObservation(id, selector: kAudioDevicePropertyNominalSampleRate) { [weak self] in
+                        Task { @MainActor in self?.refresh() }
+                    })
+                    for stream in Hardware.list(id, kAudioDevicePropertyStreams, scope: scope) {
+                        deviceObservations.append(AudioObservation(stream, selector: kAudioStreamPropertyVirtualFormat) { [weak self] in
+                            Task { @MainActor in self?.refresh() }
+                        })
+                    }
+                }
                 for selector in [kAudioDevicePropertyVolumeScalar, kAudioDevicePropertyMute] {
                     for element: UInt32 in [0, 1, 2] {
                         deviceObservations.append(AudioObservation(id, selector: selector, scope: scope, element: element) { [weak self] in Task { @MainActor in self?.refreshVolumes() } })

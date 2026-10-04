@@ -1,66 +1,85 @@
 <p align="center">
-  <img src="docs/images/icon.png" width="96" height="96" alt="SoundSwipe icon">
+  <img src="docs/images/icon.png" width="80" height="80" alt="SoundSwipe icon">
 </p>
 
 <h1 align="center">SoundSwipe</h1>
 
-<p align="center"><b>A little more control over your Mac’s audio.</b><br>
-Per-app volume, 10-band EQ, up to 4× boost, and output routing — from a tiny native menu bar app.</p>
+<p align="center">A little more control over your Mac’s audio.<br>
+Per-app volume, EQ, and output routing from the menu bar.</p>
 
 <p align="center">
   <a href="https://github.com/Hiteshldt/soundswipe/actions/workflows/ci.yml"><img src="https://github.com/Hiteshldt/soundswipe/actions/workflows/ci.yml/badge.svg" alt="Build"></a>
-  <a href="https://github.com/Hiteshldt/soundswipe/releases"><img src="https://img.shields.io/github/v/release/Hiteshldt/soundswipe?include_prereleases&label=download" alt="Download"></a>
-  <img src="https://img.shields.io/badge/macOS-14.2%2B-blue" alt="macOS 14.2+">
-  <a href="https://ko-fi.com/hiteshgupta"><img src="https://img.shields.io/badge/Support-Ko--fi-ff5e5b" alt="Support on Ko-fi"></a>
+  <a href="https://github.com/Hiteshldt/soundswipe/releases"><img src="https://img.shields.io/github/v/release/Hiteshldt/soundswipe?include_prereleases&label=preview" alt="Preview release"></a>
+  <img src="https://img.shields.io/badge/macOS-14.2%2B-blue" alt="macOS 14.2 or newer">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license"></a>
 </p>
 
-<p align="center"><a href="https://github.com/Hiteshldt/soundswipe/releases"><b>Download for macOS</b></a> · <a href="#use">Quick start</a> · <a href="https://ko-fi.com/hiteshgupta">Buy me a coffee</a></p>
+<p align="center"><a href="https://github.com/Hiteshldt/soundswipe/releases"><b>Download for macOS</b></a> · <a href="#install">Install</a> · <a href="https://ko-fi.com/hiteshgupta">Buy me a coffee</a></p>
 
-SoundSwipe is a free, open-source macOS menu bar app for output and input control, individual app volumes, volume boost, and per-app audio routing — an alternative in the spirit of [Background Music](https://github.com/kyleneideck/BackgroundMusic) and [SoundSource](https://rogueamoeba.com/soundsource/). It is built with SwiftUI, AppKit, Core Audio, and a tiny C audio kernel: a ~4 MB universal app with no Electron, package dependencies, account, telemetry, or network access.
+<p align="center"><img src="docs/images/panel.png" width="520" alt="SoundSwipe showing device controls and per-app equalizer"></p>
 
-> **Preview:** device controls and the interface are implemented and tested. Per-app mixing uses Apple’s Core Audio process taps and still needs wider validation across hardware and macOS releases. Preview builds are not yet notarized.
+Free and open source. Built with SwiftUI, AppKit, and Core Audio. No account, driver, analytics, or audio uploads.
 
-<p align="center"><img src="docs/images/panel.png" width="520" alt="SoundSwipe panel with output devices, input, and an app with the 10-band EQ open"></p>
-
-## Features
-
-- **Menu bar panel** with native materials, light/dark appearance, and VoiceOver labels.
-- **See which apps are using audio.** Only apps that are playing sound or using the microphone appear, with a live *Playing* / *Mic* status. Helper processes (like a browser's audio helper) are grouped under their app, and separately running copies of the same app get their own rows.
-- **Microphone in-use indicator** showing which apps are listening, plus one-click microphone mute (and a shortcut for it).
-- **All output devices at a glance** — switch with one click and set each device's volume independently, with device icons (AirPods, headphones, speakers, TV). Fixed-volume devices are labeled.
-- **Microphone switching**, input level, and mute.
-- **Per-app volume from 0–400%.** Choose 1× / 2× / 3× / 4× from the app’s output menu → **Volume boost**, or use the slider. Boost passes through a soft limiter to keep output bounded; unity gain with EQ off and balance centered leaves audio unchanged.
-- **Per-app 10-band EQ** (32 Hz–16 kHz, ±12 dB) with an on/off switch and 16 presets (Bass Boost, Vocal Booster, Spoken Word, Rock, Small Speakers…), plus left/right balance.
-- **Per-app output routing** — send music to headphones while calls stay on speakers. No driver or kernel extension to install.
-- **Live segmented level meters** for every adjusted app (only while the panel is open), and a 100% marker on each app's slider.
-- **Scroll on the menu bar icon** to change volume; the icon shows when output is muted. **Right-click** for a quick menu with output devices, mute, and Mix apps.
-- **Global keyboard shortcuts** you record yourself: show panel, mute, volume up/down, next output, mute microphone. No Accessibility permission needed.
-- **Remembers your mix** per app; disconnected routes fall back to the current output. Optionally turns mixing on at launch, and restores it after sleep.
-- **Launch at login.**
-- **Lightweight by design:** activity polling and meters run only while the panel is open, and audio routes exist only for apps you have changed.
-
-<p align="center">
-  <img src="docs/images/panel-light.png" width="420" alt="SoundSwipe in light mode">
-  <img src="docs/images/settings-1.png" width="360" alt="Global keyboard shortcuts">
-</p>
+> **Preview:** per-app mixing still needs wider testing across devices and macOS versions. Downloads are ad-hoc signed and not notarized yet.
 
 ## Install
 
-1. Download `SoundSwipe.zip` from the [latest release](https://github.com/Hiteshldt/soundswipe/releases) and move **SoundSwipe.app** to Applications.
-2. Preview builds are not notarized yet. On first launch macOS will block the app; open **System Settings → Privacy & Security** and click **Open Anyway**. Or build it yourself (below).
+Requires **macOS 14.2 or newer**, on Apple Silicon or Intel.
 
-Requires **macOS 14.2 or newer**, Apple Silicon or Intel.
+1. Download **SoundSwipe.dmg** from the [release page](https://github.com/Hiteshldt/soundswipe/releases).
+2. Open it and drag **SoundSwipe.app** onto **Applications**.
+3. Eject the disk, then open SoundSwipe from Applications.
+4. Look for the **waveform icon in your menu bar**. There is no Dock window.
 
-## Use
+If macOS blocks this preview, try opening the app first, then go to **System Settings → Privacy & Security → Open Anyway** if you trust the download. See [Apple’s instructions](https://support.apple.com/en-us/102445). You do not need to disable Gatekeeper.
 
-1. Click the waveform in the menu bar. Pick a speaker/headphone or microphone.
-2. Play sound in any app — it appears under **Apps**. Drag its slider, pick an output from its device menu, or open the EQ button for the 10-band equalizer and balance.
-3. Allow system-audio access when macOS asks (first adjustment only). Audio is processed locally and never saved or sent anywhere.
-4. Open the gear for shortcuts, launch at login, and turning mixing on at launch.
-5. Turn off **Mix** to hand every app back to normal macOS playback instantly.
+A ZIP is also available: unzip it and move the app to Applications. When updating, quit the existing app before replacing it. Your saved settings stay in place.
 
-System controls do not need any permission. Changing the system output changes the default device; apps with their own in-app route may keep using it.
+## First use
+
+1. Play sound in an app and click SoundSwipe’s menu bar icon.
+2. Adjust that app’s volume. Allow system-audio access when macOS asks.
+3. Use its output menu to pick a device or a 1× / 2× / 3× / 4× boost preset.
+4. Open the slider icon for EQ and balance.
+
+Turn off **Mix** to restore normal app playback. Device volume and switching work without capture permission. Audio is processed locally and never recorded or uploaded.
+
+## What it does
+
+- **Per-app volume and mute**, from 0–400%, with a soft limiter for boost.
+- **10-band EQ**, 16 presets, EQ bypass, and left/right balance for each app.
+- **Output routing** to one device per app, with fallback when a device disconnects.
+- **Speaker and microphone controls**, device switching, and microphone-use indicators.
+- **Live level meters** while the panel is open.
+- **Keyboard shortcuts** for showing the panel, system volume, mute, microphone mute, and next output.
+- **Scroll over the menu bar icon** for volume; right-click for quick controls.
+- **Saved mixes and launch at login**, configured from the gear button.
+
+<p align="center">
+  <img src="docs/images/panel-light.png" width="420" alt="SoundSwipe in light mode">
+  <img src="docs/images/settings-1.png" width="360" alt="Keyboard shortcut settings">
+</p>
+
+## If something isn’t working
+
+| What you see | What to try |
+| --- | --- |
+| No app window | Click the waveform in the menu bar. SoundSwipe runs there. |
+| No apps listed | Start playing sound. Apps appear while playing or using the microphone, and stay briefly after stopping. |
+| Per-app controls fail | Check SoundSwipe under **System Settings → Privacy & Security → Screen & System Audio Recording**. Permission labels vary by macOS version. Restart SoundSwipe after changing permission. |
+| “Fixed volume” | That output doesn’t expose a volume control to macOS. Use its own controls. |
+| Audio trouble after routing | Turn off **Mix** to restore normal playback, then report your device, macOS version, and the error shown. |
+| Launch at login doesn’t work | Install in Applications first. Check **System Settings → General → Login Items** for approval. |
+
+[Report a bug](https://github.com/Hiteshldt/soundswipe/issues/new/choose). Include your macOS version, audio device, and the steps that caused it.
+
+## Current limits
+
+Mixing supports stereo, tightly packed 32-bit float PCM routes. Unsupported formats stop mixing and show an error. Some protected sources cannot be captured; Bluetooth call profiles and conferencing apps still need hardware testing.
+
+Browser tabs share their browser’s audio stream, so SoundSwipe controls the app rather than individual tabs. Microphone volume and mute apply to the input device, not individual apps. There is no recording, automatic updater, multi-device output, or AutoEQ yet.
+
+See the [roadmap](docs/ROADMAP.md), [changelog](CHANGELOG.md), [architecture](docs/ARCHITECTURE.md), and [test checklist](docs/TESTING.md).
 
 ## Build from source
 
@@ -68,35 +87,20 @@ System controls do not need any permission. Changing the system output changes t
 git clone https://github.com/Hiteshldt/soundswipe.git
 cd soundswipe
 ./scripts/test.sh
-./scripts/build.sh            # or --universal for Intel + Apple Silicon
+./scripts/build.sh --universal
 open dist/SoundSwipe.app
 ```
 
-Needs Swift 5.10+ (Xcode 16+ or the Command Line Tools). You can also open `Package.swift` in Xcode. Run the **bundled app** from `dist/` to test permissions and login items; `swift run` lacks the bundle metadata macOS requires.
+Requires Swift 5.10+ with Xcode 16+ or Command Line Tools. The build produces the app, a drag-to-Applications DMG, a ZIP, and SHA-256 checksums in `dist/`. Omit `--universal` to build for your current architecture.
 
-## Current limits
+Run the bundled app to test permissions and login items; `swift run` lacks its bundle metadata. See [release instructions](docs/RELEASING.md) for signing and notarization.
 
-- Mixing handles stereo, 32-bit float PCM routes; other layouts stop mixing and report an error. No recording or Audio Unit plug-ins yet.
-- Microphone use is shown per app, but macOS does not allow per-app microphone volume; mute and level apply to the whole input device.
-- Helper processes are grouped only through their verified parent app; system services (for example WebKit media) keep the name macOS reports.
-- **Browser tabs and windows cannot be controlled separately.** Chrome, Edge, Brave, Electron apps, and Safari mix every tab and window inside one shared audio process before macOS receives it, so no Mac audio utility can split them. Use the browser's own tab mute, or run a second browser instance/profile — each running copy gets its own row.
-- Some protected content cannot be captured, and conferencing apps or Bluetooth call profiles need more hardware testing.
-- SoundSwipe is a menu bar app, not a Control Center module. No automatic updater yet.
+## Help out
 
-See [architecture](docs/ARCHITECTURE.md), [validation](docs/TESTING.md), the [roadmap](docs/ROADMAP.md), and the [changelog](CHANGELOG.md).
+Try it, [tell me what broke](https://github.com/Hiteshldt/soundswipe/issues), or read [CONTRIBUTING.md](CONTRIBUTING.md) if you’d like to change something. Security reports go through [SECURITY.md](SECURITY.md).
 
-## Contributing
+If it helps you, you can [buy me a coffee](https://ko-fi.com/hiteshgupta). Every feature stays free.
 
-Issues and pull requests are welcome — read [CONTRIBUTING.md](CONTRIBUTING.md). Report security issues privately as described in [SECURITY.md](SECURITY.md).
+Original code inspired by [Background Music](https://github.com/kyleneideck/BackgroundMusic) and [SoundSource](https://rogueamoeba.com/soundsource/); no code or assets from either, and no affiliation.
 
-SoundSwipe is original code inspired by Background Music and SoundSource; it includes none of their code or assets and is not affiliated with either. Audio routing uses Apple’s [Core Audio process taps](https://developer.apple.com/documentation/coreaudio/capturing-system-audio-with-core-audio-taps).
-
-## Support
-
-SoundSwipe is free and open source. If it helps you, you can [buy me a coffee on Ko-fi](https://ko-fi.com/hiteshgupta). Support is optional; every feature is available without payment.
-
-You can also help by starring the repository, sharing a short demo, or reporting a reproducible bug with your macOS version and audio device. See the [FineTune-inspired roadmap](docs/ROADMAP.md#finetune-inspired-direction) for what is implemented and what comes next.
-
-## License
-
-[MIT](LICENSE) · Made by Hitesh Gupta · [GitHub](https://github.com/Hiteshldt) · [X](https://x.com/hit3sh3d) · [ayuvam.com](https://ayuvam.com)
+[MIT license](LICENSE) · Made by Hitesh Gupta · [Website](https://hitesh.ayuvam.com)

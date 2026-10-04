@@ -5,6 +5,73 @@ import AudioDSP
 @testable import SoundSwipe
 
 struct SoundSwipeTests {
+    @Test func testGroupingExcludesOtherSoundSwipeCopies() {
+        typealias E = AudioApplication.ProcessEntry
+        let apps = AudioApplication.group([
+            E(process: 10, bundleKey: "app.soundswipe.SoundSwipe", instance: 100, name: "SoundSwipe", playing: true, recording: true),
+            E(process: 11, bundleKey: "example.player", instance: 101, name: "Player", playing: true)
+        ])
+        #expect(apps.count == 1 && apps.first?.id == "example.player")
+        #expect(apps.allSatisfy { !$0.isRecording })
+    }
+    @Test func testRouteFormatComparisonDetectsSameDeviceLayoutChanges() {
+        var format = AudioStreamBasicDescription(mSampleRate: 48000, mFormatID: kAudioFormatLinearPCM,
+            mFormatFlags: kAudioFormatFlagIsFloat | kAudioFormatFlagIsPacked, mBytesPerPacket: 8,
+            mFramesPerPacket: 1, mBytesPerFrame: 8, mChannelsPerFrame: 2, mBitsPerChannel: 32, mReserved: 0)
+        let original = AudioRouteFormat.Stream(id: 42, format: format)
+        #expect(original == AudioRouteFormat.Stream(id: 42, format: format))
+        format.mSampleRate = 16000
+        #expect(original != AudioRouteFormat.Stream(id: 42, format: format))
+        format.mSampleRate = 48000; format.mBytesPerFrame = 16
+        #expect(original != AudioRouteFormat.Stream(id: 42, format: format))
+        format.mBytesPerFrame = 8; format.mChannelsPerFrame = 1
+        #expect(original != AudioRouteFormat.Stream(id: 42, format: format))
+    }
+    @Test func testPCMFormatRejectsPaddedFramesAndInvalidRates() {
+        if #available(macOS 14.2, *) {
+            var format = AudioStreamBasicDescription(mSampleRate: 48000, mFormatID: kAudioFormatLinearPCM,
+                mFormatFlags: kAudioFormatFlagIsFloat | kAudioFormatFlagIsPacked, mBytesPerPacket: 8,
+                mFramesPerPacket: 1, mBytesPerFrame: 8, mChannelsPerFrame: 2, mBitsPerChannel: 32, mReserved: 0)
+            #expect(ProcessMixer.isFloatPCM(format))
+            format.mBytesPerFrame = 16; format.mBytesPerPacket = 16
+            #expect(!ProcessMixer.isFloatPCM(format))
+            format.mFormatFlags |= kAudioFormatFlagIsNonInterleaved
+            format.mBytesPerFrame = 4; format.mBytesPerPacket = 4
+            #expect(ProcessMixer.isFloatPCM(format))
+            format.mFormatFlags |= kAudioFormatFlagIsBigEndian
+            #expect(!ProcessMixer.isFloatPCM(format))
+            format.mFormatFlags &= ~kAudioFormatFlagIsBigEndian
+            for rate in [Double.nan, .infinity, 0, 7999, 768001] {
+                format.mSampleRate = rate
+                #expect(!ProcessMixer.isFloatPCM(format))
+            }
+        }
+    }
+    @Test func testDSPPlanarStereoPreservesChannelSeparation() {
+        let state = SWMixerCreate()!
+        defer { SWMixerDestroy(state) }
+        var left: [Float] = [0.1, 0.2, 0.3, 0.4]
+        var right: [Float] = [-0.4, -0.3, -0.2, -0.1]
+        var result = [Float](repeating: 99, count: 8)
+        let source = AudioBufferList.allocate(maximumBuffers: 2)
+        defer { source.unsafeMutablePointer.deallocate() }
+        source.unsafeMutablePointer.pointee.mNumberBuffers = 2
+        left.withUnsafeMutableBytes { l in
+            right.withUnsafeMutableBytes { r in
+                result.withUnsafeMutableBytes { dst in
+                    source[0] = AudioBuffer(mNumberChannels: 1, mDataByteSize: UInt32(l.count), mData: l.baseAddress)
+                    source[1] = AudioBuffer(mNumberChannels: 1, mDataByteSize: UInt32(r.count), mData: r.baseAddress)
+                    var output = AudioBufferList(mNumberBuffers: 1,
+                        mBuffers: AudioBuffer(mNumberChannels: 2, mDataByteSize: UInt32(dst.count), mData: dst.baseAddress))
+                    var time = AudioTimeStamp()
+                    #expect(SWMixerRender(0, &time, source.unsafePointer, &time, &output, &time,
+                        UnsafeMutableRawPointer(state)) == noErr)
+                }
+            }
+        }
+        #expect(result == [0.1, -0.4, 0.2, -0.3, 0.3, -0.2, 0.4, -0.1])
+        #expect(!SWMixerFormatFailed(state))
+    }
     @Test func testMixDefaultsAndFiniteGain() {
         var mix = AppMix()
         #expect(!(mix.needsMixing))

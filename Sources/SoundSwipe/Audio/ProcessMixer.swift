@@ -51,8 +51,18 @@ final class ProcessMixer {
             try Hardware.check(AudioDeviceStart(aggregate, io), "Start audio route")
         } catch { stop(); throw error }
     }
-    private static func isFloatPCM(_ f: AudioStreamBasicDescription) -> Bool {
-        f.mFormatID == kAudioFormatLinearPCM && f.mBitsPerChannel == 32 && f.mFormatFlags & kAudioFormatFlagIsFloat != 0 && f.mFormatFlags & kAudioFormatFlagIsBigEndian == 0
+    static func isFloatPCM(_ f: AudioStreamBasicDescription) -> Bool {
+        let nonInterleaved = f.mFormatFlags & kAudioFormatFlagIsNonInterleaved != 0
+        let channelsPerBuffer = nonInterleaved ? 1 : f.mChannelsPerFrame
+        // The render kernel indexes tightly packed Float samples. Padded frames
+        // or a different stride would otherwise be accepted and read incorrectly.
+        return f.mFormatID == kAudioFormatLinearPCM && f.mBitsPerChannel == 32
+            && f.mFormatFlags & kAudioFormatFlagIsFloat != 0
+            && f.mFormatFlags & kAudioFormatFlagIsBigEndian == 0
+            && f.mChannelsPerFrame > 0 && f.mChannelsPerFrame <= 2
+            && f.mBytesPerFrame == 4 * channelsPerBuffer
+            && f.mFramesPerPacket == 1 && f.mBytesPerPacket == f.mBytesPerFrame
+            && f.mSampleRate.isFinite && (8000...768000).contains(f.mSampleRate)
     }
     func apply(_ mix: AppMix) {
         guard let state else { return }

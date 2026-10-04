@@ -11,14 +11,16 @@ jobs:
       - uses: actions/checkout@v7
       - name: Test
         run: ./scripts/test.sh
+      - name: Verify release version
+        run: |
+          VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
+          test "$GITHUB_REF_NAME" = "v$VERSION"
       - name: Build universal app
         run: ./scripts/build.sh --universal
-      - name: Checksum
-        run: cd dist && shasum -a 256 SoundSwipe.zip > SoundSwipe.zip.sha256
       - name: Publish pre-release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/SoundSwipe.zip dist/SoundSwipe.zip.sha256 \
+          gh release create "$GITHUB_REF_NAME" dist/SoundSwipe.dmg dist/SoundSwipe.dmg.sha256 dist/SoundSwipe.zip dist/SoundSwipe.zip.sha256 \
             --prerelease --title "SoundSwipe ${GITHUB_REF_NAME#v} (preview)" \
-            --notes "Preview build: universal (Apple Silicon + Intel), ad-hoc signed, not notarized. After moving SoundSwipe.app to Applications, open it once, then choose **Open Anyway** in System Settings → Privacy & Security. See [CHANGELOG.md](https://github.com/Hiteshldt/soundswipe/blob/main/CHANGELOG.md)."
+            --notes "Download **SoundSwipe.dmg**, open it, and drag **SoundSwipe.app** to **Applications**. Eject the disk and launch the app from Applications; look for the waveform in the menu bar. Universal preview (Apple Silicon + Intel), ad-hoc signed, not notarized. If macOS blocks it, try opening it first, then use **Open Anyway** in System Settings → Privacy & Security if you trust the download. ZIP and SHA-256 checksums are also provided. See [CHANGELOG.md](https://github.com/Hiteshldt/soundswipe/blob/main/CHANGELOG.md)."

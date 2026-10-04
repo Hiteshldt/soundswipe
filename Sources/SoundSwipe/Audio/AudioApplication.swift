@@ -60,7 +60,10 @@ struct AudioApplication: Identifiable, Equatable {
     /// - Further copies with the same name are numbered and get a session-only key containing `#`.
     static func group(_ entries: [ProcessEntry]) -> [AudioApplication] {
         var apps: [AudioApplication] = []
-        for (bundleKey, bundleEntries) in Dictionary(grouping: entries, by: \.bundleKey) {
+        // Another running copy owns the mixer's tap input/output, not a user's
+        // microphone session. Never offer to tap our own routed audio again.
+        let external = entries.filter { $0.bundleKey != "app.soundswipe.SoundSwipe" }
+        for (bundleKey, bundleEntries) in Dictionary(grouping: external, by: \.bundleKey) {
             let byName = Dictionary(grouping: bundleEntries, by: \.name)
             for (name, named) in byName {
                 let baseKey = byName.count > 1 ? "\(bundleKey)|\(name)" : bundleKey

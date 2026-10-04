@@ -31,6 +31,6 @@ SoundSwipe aims for the same convenient menu bar workflow, while keeping its own
 | Headphone correction | Not implemented | AutoEQ profile import and per-device processing |
 | Keyboard | Recorded global shortcuts for system controls | Per-app hotkeys and full popup row navigation |
 | Appearance | Native system light/dark appearance | Explicit theme, density, and menu bar icon choices |
-| Distribution | Universal preview ZIP, ad-hoc signed | Developer ID signing, notarization, then stable release and Homebrew |
+| Distribution | Universal preview DMG and ZIP, ad-hoc signed | Developer ID signing, notarization, then stable release and Homebrew |
 
 Prioritize audio reliability and distribution first, followed by app visibility, saved EQ presets, and keyboard navigation. Multi-device routing and AutoEQ need separate DSP design and hardware testing.

@@ -19,4 +19,8 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: SoundSwipe-preview-universal
-          path: dist/SoundSwipe.zip
+          path: |
+            dist/SoundSwipe.dmg
+            dist/SoundSwipe.dmg.sha256
+            dist/SoundSwipe.zip
+            dist/SoundSwipe.zip.sha256

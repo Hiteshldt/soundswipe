@@ -43,3 +43,11 @@ A successful compile is not an end-to-end audio test. Current results belong in 
 Automated coverage includes separate duplex mute restore levels, out-of-range legacy preferences, incomplete snapshot arguments, 4× boost bounds, surround-output rejection, and disabling/re-enabling EQ bands across sample-rate changes.
 
 On hardware, set different input/output levels on one USB interface, mute both, then unmute in either order. Each must restore its own level. With a hardware mute switch, also move volume to zero while muted before unmuting. Verify that the previous level is restored. These hardware writes and Settings focus transitions require manual validation; unit tests exercise the underlying state and DSP only.
+
+## 0.5.1 packaging and format checks
+
+Automated tests cover planar stereo-to-interleaved channel separation and rejection of padded PCM strides, big-endian float, and invalid sample rates. All snapshot runs use isolated preferences. Process grouping excludes other SoundSwipe copies from both app controls and microphone-use indicators. Route format comparisons detect a layout change even when the device and stream IDs stay the same.
+
+Verify the DMG with `hdiutil verify dist/SoundSwipe.dmg`, mount it read-only, check the Applications link and bundled version, and verify the mounted app signature. Copy the app to a temporary folder and run `--diagnostics` from that copy. Confirm both architecture slices with `lipo -verify_arch arm64 x86_64`.
+
+On hardware, change the physical device sample rate and switch a Bluetooth device into and out of its call profile. The route must rebuild or stop with an unsupported-format error. Perform the full manual matrix before claiming stable audio support.

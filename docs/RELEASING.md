@@ -15,10 +15,10 @@ Upload `docs/images/social-preview.png` in **Settings → General → Social pre
 Bump `CFBundleShortVersionString` and `CFBundleVersion` in `Resources/Info.plist`, add a CHANGELOG entry, then push a tag:
 
 ```sh
-git tag v0.2.0 && git push origin v0.2.0
+git tag v0.5.1 && git push origin v0.5.1
 ```
 
-The release workflow runs tests, builds a universal ad-hoc-signed app, and publishes a GitHub pre-release with the ZIP and its SHA-256 checksum.
+The release workflow runs tests, builds a universal ad-hoc-signed app, and publishes a GitHub pre-release with the DMG, ZIP, and their SHA-256 checksums. The tag must match the version in Info.plist.
 
 ## Attribution
 
@@ -34,8 +34,11 @@ xcrun notarytool submit dist/SoundSwipe.zip --keychain-profile YOUR_PROFILE --wa
 xcrun stapler staple dist/SoundSwipe.app
 xcrun stapler validate dist/SoundSwipe.app
 spctl --assess --type execute --verbose dist/SoundSwipe.app
-ditto -c -k --keepParent dist/SoundSwipe.app dist/SoundSwipe.zip
-shasum -a 256 dist/SoundSwipe.zip > dist/SoundSwipe.zip.sha256
+./scripts/package.sh
+xcrun notarytool submit dist/SoundSwipe.dmg --keychain-profile YOUR_PROFILE --wait
+xcrun stapler staple dist/SoundSwipe.dmg
+xcrun stapler validate dist/SoundSwipe.dmg
+(cd dist && shasum -a 256 SoundSwipe.dmg > SoundSwipe.dmg.sha256)
 ```
 
 Use an existing securely stored notarization credential. Never commit signing certificates, passwords, API keys, provisioning material, or local keychain exports. Increment the version and build number in Info.plist for releases and keep UI/diagnostic versions consistent.

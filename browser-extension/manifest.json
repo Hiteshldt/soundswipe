@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SoundSwipe Tabs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Separate volume and mute controls for the Chrome tabs you choose.",
   "minimum_chrome_version": "116",
   "permissions": [

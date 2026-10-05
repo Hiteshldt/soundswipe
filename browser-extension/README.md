@@ -17,7 +17,7 @@ This is an unpacked preview, not a Chrome Web Store release. Other Chromium brow
 2. Open the second tab and do the same.
 3. The extension popup now has a separate volume slider and mute button for each tab.
 
-Controls keep working when you close the popup. **Restore normal audio** releases that tab’s capture and lets Chrome play it normally again. Closing a tab removes its control. Reloading/disabling the extension or restarting Chrome ends capture; controls must be enabled again.
+Controls keep working when you close the popup. **Restore normal audio** releases that tab’s capture and lets Chrome play it normally again. Closing a tab or ending capture removes its control, including from an open popup. Reloading/disabling the extension or restarting Chrome ends capture; controls must be enabled again.
 
 You must invoke the extension from each tab you want to control. It cannot silently start capturing arbitrary tabs. Chrome displays its tab-capture indicator while a tab is controlled. Protected content and browser-internal pages may reject capture. If Chrome already mutes a site, unmute it before trying the controls. Tab title labels reflect the title when control starts.
 
@@ -35,8 +35,8 @@ Run `node --test Tests/browser-extension/audio-engine.test.mjs` from the reposit
 
 An optional [browser integration check](../docs/TESTING.md#052-permission-recovery-and-chrome-companion) uses generated audio through the popup and Web Audio graph; capture permission is substituted.
 
-Tests cover independent gains, mute restoration, teardown, duplicate starts, capture/playback failures, cancellation during setup, stale stream-end events, and invalid volumes. Real toolbar invocation and permission handling, navigation, protected content, and playback on physical hardware still need manual validation before a stable/Web Store release.
+Tests cover independent gains, mute restoration, teardown, duplicate starts, capture/playback failures, cancellation during setup, stale stream-end events, invalid volumes, and streams ending before playback starts. Real toolbar invocation and permission handling, navigation, protected content, and playback on physical hardware still need manual validation before a stable/Web Store release.
 
-Manual check: play two tabs, control each from its toolbar popup, set one to 20% and the other to 80%, mute/unmute either, close the popup, navigate a controlled tab, close one tab, and restore normal audio for the other. No tab should go silent merely because the popup closes.
+Manual check: play two tabs, control each from its toolbar popup, set one to 20% and the other to 80%, mute/unmute either, close the popup, navigate a controlled tab, close one tab, and restore normal audio for the other. Also stop a capture using Chrome’s indicator while the popup is open: its row should disappear, the other tab should keep playing, and its slider should retain keyboard focus. Re-enable the ended tab from its toolbar popup. No tab should go silent merely because the popup closes.
 
 [MIT license](https://github.com/Hiteshldt/soundswipe/blob/main/LICENSE) · [Report a bug](https://github.com/Hiteshldt/soundswipe/issues)

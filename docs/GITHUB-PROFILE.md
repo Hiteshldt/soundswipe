@@ -1,36 +1,33 @@
-# Hitesh's GitHub profile and discovery plan
+# GitHub profile and project visibility
 
-## What the audit found
+Your [profile README](https://github.com/Hiteshldt/Hiteshldt) is published. It uses the night-sky animation, a short introduction, and links to your website, other work, and Ko-fi. The [saved copy](profile/README.md) and its `assets/platformer.gif` match that layout. The public API on October 5, 2026 shows your updated bio, `hitesh.ayuvam.com` website, and 28 public repositories.
 
-On October 4, 2026, the public GitHub API showed 27 public repositories, the bio “I like building tech.”, an empty website field, and no accessible `Hiteshldt/Hiteshldt` profile repository. You already pin three IoT projects: `cb-algal-lab-culture-monitoring`, `cb-lab-co2-flow-monitoring`, and `cb-pbr-configurator`. Most public projects have no description. SoundSwipe already has a detailed description, relevant topics, screenshots, a license, CI, and preview releases. Build on that foundation.
+Your current bio fits your tone:
 
-FineTune's page in the reference is a **repository page**, not its developer's personal profile. Its README, release downloads, documentation, funding links, and community activity make the project easy to evaluate. Profile setup helps visitors understand who built it; neither setup nor keywords guarantee stars or search placement.
+> Software engineer who also designs. I build tools to speed up my work and share them here so others can use and improve them.
 
-## Set up your profile
+## Keep the profile simple
 
-1. Open [profile settings](https://github.com/settings/profile). Use a recognizable photo and the name **Hitesh Gupta**. Suggested bio: **Building practical tools for macOS, the web, and connected devices. Creator of SoundSwipe — free per-app audio control for Mac.**
-2. Add `https://ayuvam.com` as your website if it is the destination you want visitors to use. Add X and Ko-fi to your social links. Add a public contact email only if you want it visible.
-3. Create a **public** repository named exactly **Hiteshldt** and put [this prepared README](profile/README.md) in its root as `README.md`. GitHub shows a nonempty root README from a public repository matching your username on your profile. [Official instructions](https://docs.github.com/en/account-and-profile/how-tos/profile-customization/managing-your-profile-readme).
-4. On your profile, choose **Customize your pins**. Add SoundSwipe as your first pin, then keep two or three projects that are working, documented, and safe to share. Candidates from your public list include `diagnostic-booking-api`, `cb-iot-automation-test-tool`, and `personal_finance_tracker`; review their code and setup before featuring them. Public metadata alone does not establish their quality. [Profile customization](https://docs.github.com/en/account-and-profile/how-tos/profile-customization).
-5. Give each selected project a one-sentence description, screenshot or example request, setup steps, license, and link to a working demo where available. Archive genuinely abandoned work only after reviewing it; don't delete repositories just to make the profile look tidy.
+- Pin three or four working projects that show the different things you build. SoundSwipe can be one of them. Use **Customize your pins** on your profile.
+- Give each pinned repository a short description, an example or screenshot, and clear setup steps. Add a working demo when there is one.
+- Keep your website at `https://hitesh.ayuvam.com`. The Other work link in the README already gives visitors a quiet way to find Ayuvam.
+- Update the profile through the separate `Hiteshldt/Hiteshldt` repository. Changes in SoundSwipe do not update your account bio or profile README.
 
-The profile README is a draft here; pushing SoundSwipe does not create the separate profile repository or change account settings.
+See GitHub’s [profile customization instructions](https://docs.github.com/en/account-and-profile/how-tos/profile-customization) and [profile README instructions](https://docs.github.com/en/account-and-profile/how-tos/profile-customization/managing-your-profile-readme).
 
-## Make SoundSwipe easier to evaluate
+## Help people find the projects
 
-- Keep the download link, real screenshots, supported macOS versions, permission steps, and preview limitations near the top of the README.
-- The new `.github/FUNDING.yml` points to `ko_fi: hiteshgupta`. If the Sponsor button is hidden, enable **Settings → General → Features → Sponsorships**. This links Ko-fi; it does not enroll you in GitHub Sponsors. [Funding documentation](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository).
-- Upload `docs/images/social-preview.png` under **Settings → General → Social preview**. Keep its text aligned with the actual app. [Social preview documentation](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/customizing-your-repositorys-social-media-preview).
-- Keep your existing specific topics such as `macos`, `per-app-volume`, `coreaudio`, `swiftui`, and `audio-routing`. Topics help people find related projects; adding unrelated popular terms will not build useful interest. [Topics documentation](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/classifying-your-repository-with-topics).
-- Prioritize signed, notarized downloads and reliable hardware behavior. The current unsigned preview installation adds friction. Do not advertise Homebrew installation until a real cask exists.
+Use accurate descriptions and relevant [repository topics](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/classifying-your-repository-with-topics). Put a usable download, supported platforms, setup instructions, and known limits near the top of each project’s README. Share a short demo or a useful release update in communities where project posts are welcome. Say that you built it.
 
-## A practical four-week plan
+For SoundSwipe, keep preview limits clear and collect feedback from people using different audio devices. A signed, notarized download and reliable hardware behavior will help more than adding decorative badges. Homebrew installation should wait until a real cask and suitable download exist.
 
-| When | Deliverable |
-| --- | --- |
-| Week 1 | Profile README, bio, website, three strong pins, and a 20–30 second demo showing separate music/call volumes. |
-| Week 2 | Ask a small group of Mac users to test on built-in, USB, HDMI, and Bluetooth devices. Track reproducible issues with OS/device details. |
-| Week 3 | Publish a preview with clear release notes and a short technical post about a real problem solved in the project. Share in relevant communities that allow project posts; disclose that you built it. |
-| Week 4 | Fix the most common onboarding or audio issue, improve the docs from feedback, and repeat with a new demo. |
+The Ko-fi [funding configuration](../.github/FUNDING.yml) is already present. GitHub’s Sponsor button can link to it; this does not enroll you in GitHub Sponsors. See the [funding setup](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository). Add a [social preview image](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/customizing-your-repositorys-social-media-preview) in repository settings when you have one that represents the project.
 
-Measure downloads, returning testers, resolved bugs, and helpful contributions. Stars are a possible result of useful software and sustained visibility, not a setting to enable. Avoid mass promotion, bought stars, and decorative contribution widgets that distract from working projects.
+## A small next step each week
+
+1. Review your pins and improve one project’s description and setup instructions.
+2. Share a short demo and ask a few people to try it.
+3. Fix the problems they can reproduce and publish clear release notes.
+4. Improve the docs from their questions, then repeat.
+
+There is no hidden setting that guarantees reach. Useful projects, easy setup, clear documentation, and steady responses to feedback give people a reason to return.

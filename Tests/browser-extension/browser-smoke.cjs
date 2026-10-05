@@ -81,7 +81,7 @@ async function connect(target) {
     async function popup() {
       await worker.evaluate(() => chrome.action.openPopup());
       const socket = await connect(await findTarget('popup.html')); sockets.push(socket);
-      await until(() => socket.evaluate('document.querySelector("#start").textContent === "Control this tab" || document.querySelector("#start").textContent === "This tab is controlled"'), 'popup ready');
+      await until(() => socket.evaluate('!document.querySelector("#start").disabled || document.querySelector("#start").textContent === "This tab is controlled"'), 'popup ready');
       return socket;
     }
     const state = () => offscreen.evaluate('window.testEngine?.snapshot() || []');
@@ -124,12 +124,26 @@ async function connect(target) {
     assert.equal(await offscreen.evaluate('[...testEngine.sessions.values()].every(session => session.context.state === "running")'), true);
     view = await popup();
     await until(() => view.evaluate('document.querySelectorAll(".tab").length === 2'), 'rows after reopen');
+    await view.evaluate('window.testRemainingSlider = document.querySelector("input[type=range]"); testRemainingSlider.focus()');
+    await offscreen.evaluate(`(() => {
+      const ended = [...testEngine.sessions.values()][1];
+      for (const track of ended.stream.getAudioTracks()) { track.stop(); track.dispatchEvent(new Event('ended')); }
+    })()`);
+    await until(async () => (await state()).length === 1, 'ended capture removes its route');
+    await until(() => view.evaluate('document.querySelectorAll(".tab").length === 1'), 'ended capture removes its popup row');
+    assert.equal(await view.evaluate('document.querySelector("input[type=range]") === testRemainingSlider && document.activeElement === testRemainingSlider'), true);
+    assert.equal(await view.evaluate('!document.querySelector("#start").disabled'), true);
+    await view.evaluate(`testRemainingSlider.value = '35'; testRemainingSlider.dispatchEvent(new Event('input', { bubbles: true }))`);
+    await until(async () => (await state())[0]?.volume === .35, 'remaining slider keeps working');
+    await view.evaluate('document.querySelector("#start").click()');
+    await until(async () => (await state()).length === 2, 'ended tab can be controlled again');
+    await until(() => view.evaluate('document.querySelectorAll(".tab").length === 2'), 'rows after retry');
     await view.evaluate('document.querySelector(".tab .stop").click()');
     await until(async () => (await state()).length === 1, 'restore one tab');
     await view.evaluate('window.close()');
     await pageB.close();
     await until(async () => (await state()).length === 0, 'tab close cleans up');
-    console.log(`Browser integration passed: separate 20%/80% signals (RMS ${rms.map(value => value.toFixed(4)).join(', ')}), mute, popup persistence, restore, and tab-close cleanup.`);
+    console.log(`Browser integration passed: separate 20%/80% signals (RMS ${rms.map(value => value.toFixed(4)).join(', ')}), mute, popup persistence, ended-capture row removal with preserved focus, retry, restore, and tab-close cleanup.`);
     console.log('Capture/toolbar permission was substituted with synthetic test streams; real permission flow still needs manual validation.');
   } finally {
     sockets.forEach(socket => socket.close());

@@ -66,6 +66,7 @@ Turn off **Mix** to restore normal app playback. Device volume and switching wor
 
 | What you see | What to try |
 | --- | --- |
+| New changes missing | Check **Settings → About** for the version. Quit SoundSwipe, replace the app in Applications with the new download, and reopen it. A running copy keeps its old code until restarted. |
 | No app window | Click the waveform in the menu bar. SoundSwipe runs there. |
 | No apps listed | Start playing sound. Apps appear while playing or using the microphone, and stay briefly after stopping. |
 | Per-app controls fail | Check SoundSwipe under **System Settings → Privacy & Security → Screen & System Audio Recording**. Permission labels vary by macOS version. Restart SoundSwipe after changing permission. |

@@ -15,7 +15,7 @@ Upload `docs/images/social-preview.png` in **Settings → General → Social pre
 Bump `CFBundleShortVersionString` and `CFBundleVersion` in `Resources/Info.plist`, add a CHANGELOG entry, then push a tag:
 
 ```sh
-git tag v0.5.2 && git push origin v0.5.2
+git tag v0.5.6 && git push origin v0.5.6
 ```
 
 The release workflow runs tests, builds a universal ad-hoc-signed app, and publishes a GitHub pre-release with the app DMG, app ZIP, optional Chrome companion ZIP, and their SHA-256 checksums. The tag must match the version in Info.plist.

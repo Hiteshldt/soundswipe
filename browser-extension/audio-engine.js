@@ -32,6 +32,10 @@ export class TabAudioEngine {
         video: false
       });
       if (token.cancelled) throw new Error('Tab control was cancelled.');
+      const tracks = stream.getAudioTracks();
+      if (!tracks.length || tracks.some(track => track.readyState !== 'live')) {
+        throw new Error('Tab audio has ended. Open the tab and try again.');
+      }
       context = new this.AudioContext();
       source = context.createMediaStreamSource(stream);
       gain = context.createGain();
@@ -47,6 +51,11 @@ export class TabAudioEngine {
       } finally { clearTimeout(timer); }
       if (token.cancelled) throw new Error('Tab control was cancelled.');
       if (context.state !== 'running') throw new Error('Audio could not start. Try controlling this tab again.');
+      // The tab can close or release capture while resume() is still pending.
+      // An ended event from that interval will not fire again for new listeners.
+      if (tracks.some(track => track.readyState !== 'live')) {
+        throw new Error('Tab audio has ended. Open the tab and try again.');
+      }
       const session = { tabId, title: String(title || 'Tab').slice(0, 160), volume: 1, muted: false, stream, context, source, gain };
       this.sessions.set(tabId, session);
       for (const track of stream.getTracks()) {

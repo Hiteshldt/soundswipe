@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { TabAudioEngine } from '../../browser-extension/audio-engine.js';
 
 class Track {
-  stopped = false;
+  stopped = false; readyState = 'live';
   addEventListener(_, callback) { this.ended = callback; }
-  stop() { this.stopped = true; }
+  stop() { this.stopped = true; this.readyState = 'ended'; }
 }
 class Context {
   static instances = [];
@@ -26,7 +26,7 @@ function fixture(options = {}) {
     getUserMedia: async constraints => {
       assert.equal(constraints.video, false);
       assert.equal(constraints.audio.mandatory.chromeMediaSource, 'tab');
-      const track = new Track(); const stream = { getTracks: () => [track] };
+      const track = new Track(); const stream = { getTracks: () => [track], getAudioTracks: () => [track] };
       streams.push({ stream, track }); return stream;
     }, ...options
   });
@@ -87,7 +87,7 @@ test('a stop during capture setup cannot leave a route behind', async () => {
   const { engine } = fixture({ getUserMedia: () => new Promise(resolve => { release = resolve; }) });
   const starting = engine.start(1, 'one', 'Tab');
   const stopping = engine.stop(1);
-  release({ getTracks: () => [track] });
+  release({ getTracks: () => [track], getAudioTracks: () => [track] });
   await assert.rejects(starting, /cancelled/); await stopping;
   assert.equal(track.stopped, true); assert.deepEqual(engine.snapshot(), []);
 });
@@ -112,4 +112,34 @@ test('invalid volume does not corrupt gain; raising volume unmutes', async () =>
   engine.setVolume(1, 8); assert.equal(engine.snapshot()[0].volume, 1);
   engine.setVolume(1, -2); assert.equal(engine.snapshot()[0].volume, 0);
   await engine.stop(1);
+});
+
+
+test('capture that has already ended cannot publish a silent route', async () => {
+  const track = new Track(); track.readyState = 'ended';
+  const { engine } = fixture({ getUserMedia: async () => ({ getTracks: () => [track], getAudioTracks: () => [track] }) });
+  await assert.rejects(engine.start(1, 'one', 'Tab'), /audio.*ended/i);
+  assert.equal(track.stopped, true); assert.deepEqual(engine.snapshot(), []);
+  assert.equal(engine.pending.size, 0);
+});
+
+test('capture ending during playback startup releases all resources', async () => {
+  let finishResume, markResuming;
+  const resuming = new Promise(resolve => { markResuming = resolve; });
+  class DelayedContext extends Context {
+    async resume() { await new Promise(resolve => { finishResume = resolve; markResuming(); }); this.state = 'running'; }
+  }
+  const { engine, streams } = fixture({ AudioContext: DelayedContext });
+  const starting = engine.start(1, 'one', 'Tab');
+  await resuming; streams[0].track.readyState = 'ended'; finishResume();
+  await assert.rejects(starting, /audio.*ended/i);
+  assert.equal(streams[0].track.stopped, true);
+  assert.equal(Context.instances.at(-1).state, 'closed');
+  assert.deepEqual(engine.snapshot(), []); assert.equal(engine.pending.size, 0);
+});
+
+test('a stream without an audio track cannot start playback', async () => {
+  const { engine } = fixture({ getUserMedia: async () => ({ getTracks: () => [], getAudioTracks: () => [] }) });
+  await assert.rejects(engine.start(1, 'one', 'Tab'), /audio/i);
+  assert.deepEqual(engine.snapshot(), []); assert.equal(engine.pending.size, 0);
 });

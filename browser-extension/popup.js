@@ -1,6 +1,22 @@
 const startButton = document.querySelector('#start');
 const errorBox = document.querySelector('#error');
 let activeTab;
+let starting = false;
+function updateControls() {
+  const rows = [...document.querySelectorAll('.tab')];
+  document.querySelector('#empty').hidden = rows.length > 0;
+  const controlled = rows.some(row => Number(row.dataset.tabId) === activeTab?.id);
+  startButton.textContent = starting ? 'Starting…' : controlled ? 'This tab is controlled' : 'Control this tab';
+  startButton.disabled = starting || controlled || !activeTab;
+}
+chrome.runtime.onMessage.addListener((message, sender) => {
+  if (sender.id !== chrome.runtime.id || sender.url !== chrome.runtime.getURL('offscreen.html') || message.target !== 'popup' || message.action !== 'tabsEnded' || !Array.isArray(message.tabIds)) return;
+  for (const row of document.querySelectorAll('.tab')) {
+    if (message.tabIds.includes(Number(row.dataset.tabId))) row.remove();
+  }
+  // Keep every remaining slider node and its keyboard/drag focus intact.
+  updateControls();
+});
 function showError(error) { errorBox.textContent = error?.message || String(error); errorBox.hidden = false; }
 async function request(action, data = {}) {
   const result = await chrome.runtime.sendMessage({ target: 'worker', action, ...data });
@@ -11,12 +27,8 @@ async function request(action, data = {}) {
 function render(sessions) {
   const container = document.querySelector('#sessions');
   container.replaceChildren();
-  document.querySelector('#empty').hidden = sessions.length > 0;
-  const controlled = sessions.some(session => session.tabId === activeTab?.id);
-  startButton.textContent = controlled ? 'This tab is controlled' : 'Control this tab';
-  startButton.disabled = controlled || !activeTab;
   for (const session of sessions) {
-    const row = document.createElement('section'); row.className = 'tab';
+    const row = document.createElement('section'); row.className = 'tab'; row.dataset.tabId = String(session.tabId);
     const title = document.createElement('p'); title.className = 'title'; title.textContent = session.title; title.title = session.title;
     const controls = document.createElement('div'); controls.className = 'controls';
     const mute = document.createElement('button'); mute.textContent = session.muted ? 'Unmute' : 'Mute';
@@ -42,14 +54,16 @@ function render(sessions) {
     });
     controls.append(mute, slider, value); row.append(title, controls, stop); container.append(row);
   }
+  updateControls();
 }
 startButton.addEventListener('click', async () => {
-  startButton.disabled = true; startButton.textContent = 'Starting…'; errorBox.hidden = true;
+  starting = true; updateControls(); errorBox.hidden = true;
   try { render(await request('start', { tabId: activeTab.id })); }
-  catch (error) { showError(error); startButton.disabled = false; startButton.textContent = 'Control this tab'; }
+  catch (error) { showError(error); }
+  finally { starting = false; updateControls(); }
 });
 (async () => {
   [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
   document.querySelector('#active-title').textContent = activeTab?.title || 'Current tab';
   render(await request('list'));
-})().catch(showError);
+})().catch(error => { showError(error); updateControls(); });

@@ -64,4 +64,10 @@ An optional integration check uses Node 22+, Playwright, and an isolated Chromiu
 node Tests/browser-extension/browser-smoke.cjs
 ```
 
-Install Playwright and its Chromium browser separately, or point PLAYWRIGHT_MODULE at the installed module and SOUNDSWIPE_TEST_BROWSER at a compatible Chromium executable. The test measures generated audio through the real popup, worker, offscreen document, and Web Audio graph: independent 20%/80% levels, mute, popup persistence, restore, and closed-tab cleanup. It substitutes Chrome capture authorization and sources; it does **not** validate real toolbar grants, source capture, protected media, or physical output. No user browser profile is used.
+Install Playwright and its Chromium browser separately, or point PLAYWRIGHT_MODULE at the installed module and SOUNDSWIPE_TEST_BROWSER at a compatible Chromium executable. The test measures generated audio through the real popup, worker, offscreen document, and Web Audio graph: independent 20%/80% levels, mute, popup persistence, ended-capture row removal with preserved focus, recapture, restore, and closed-tab cleanup. It substitutes Chrome capture authorization and sources; it does **not** validate real toolbar grants, source capture, protected media, or physical output. No user browser profile is used.
+
+## 0.5.6 review
+
+The native suite has 25 passing tests and the companion suite has 11. The new companion regressions reject missing/ended audio tracks and capture ending while AudioContext.resume is pending. Browser integration also checks that an ended capture is removed from the popup without replacing the remaining slider or losing its focus, and can be enabled again. Generated-stream checks do not validate actual source capture or Chrome’s toolbar permission flow.
+
+The main widget should show exactly one Donate button in the footer, with a filled heart and readable text in dark and light mode. Verify the installed version in About after replacing the app; a running process continues using its previous code until it quits. Full hardware audio, permission renewal, protected media, and the manual release matrix remain required before a stable release.

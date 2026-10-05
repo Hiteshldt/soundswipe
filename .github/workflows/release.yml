@@ -23,6 +23,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          cat > "$RUNNER_TEMP/SoundSwipe-release-notes.md" <<'NOTES'
+          Download **SoundSwipe.dmg**, quit your older copy, and drag **SoundSwipe.app** to **Applications**. Eject the disk and launch from Applications; look for the waveform in the menu bar. Your settings stay in place. Check **Settings → About** for the installed version.
+
+          This is a universal preview for Apple Silicon and Intel, ad-hoc signed and not notarized. If macOS blocks it, try opening it first, then use **Open Anyway** in System Settings → Privacy & Security if you trust the download. Physical-device audio and capture permission behavior still require manual validation.
+
+          For independent Chrome tab volume, unzip **SoundSwipe-Tabs.zip**, open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the SoundSwipe-Tabs folder. Pin the extension, invoke it in each audio tab, and choose **Control this tab**. This companion is an unpacked preview; controls live in Chrome. Real toolbar permission and source capture still need manual validation.
+
+          App and companion ZIPs and SHA-256 checksums are included.
+          NOTES
+          printf '\n[Changelog](https://github.com/Hiteshldt/soundswipe/blob/%s/CHANGELOG.md) · [Chrome companion instructions](https://github.com/Hiteshldt/soundswipe/blob/%s/browser-extension/README.md)\n' "$GITHUB_REF_NAME" "$GITHUB_REF_NAME" >> "$RUNNER_TEMP/SoundSwipe-release-notes.md"
           gh release create "$GITHUB_REF_NAME" dist/SoundSwipe.dmg dist/SoundSwipe.dmg.sha256 dist/SoundSwipe.zip dist/SoundSwipe.zip.sha256 dist/SoundSwipe-Tabs.zip dist/SoundSwipe-Tabs.zip.sha256 \
             --prerelease --title "SoundSwipe ${GITHUB_REF_NAME#v} (preview)" \
-            --notes "Download **SoundSwipe.dmg**, open it, and drag **SoundSwipe.app** to **Applications**. Eject the disk and launch the app from Applications; look for the waveform in the menu bar. Universal preview (Apple Silicon + Intel), ad-hoc signed, not notarized. If macOS blocks it, try opening it first, then use **Open Anyway** in System Settings → Privacy & Security if you trust the download. ZIP and SHA-256 checksums are also provided. See [CHANGELOG.md](https://github.com/Hiteshldt/soundswipe/blob/main/CHANGELOG.md)."
+            --notes-file "$RUNNER_TEMP/SoundSwipe-release-notes.md"

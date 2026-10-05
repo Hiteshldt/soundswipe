@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.6 — Preview
+
+- Reject Chrome captures that have ended or have no audio track, including captures ending while playback starts. Release their tracks and audio contexts.
+- Remove ended captures from an open Chrome popup without replacing the remaining sliders or stealing their focus.
+- Keep the Control button disabled until the popup is ready; re-enable it after capture ends or a start fails.
+- Add three startup regression tests and browser checks for row cleanup, focus preservation, and recapture. The companion version is now 0.1.1.
+- Refresh update instructions, release notes, and the saved profile guide to match the approved minimal profile.
+
 ## 0.5.5 — Preview
 
 - Give the single footer Donate button a filled heart, clear text, and a pink background and outline so it is easier to find.

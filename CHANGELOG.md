@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Keep mixing when Bluetooth headphones switch to the mono hands-free profile, for example when WhatsApp or a call uses the headset mic. Mono outputs get a stereo downmix, and multichannel outputs use the front pair.
+- Retry a route once, quietly, when a device briefly republishes during a profile switch before reporting an error.
+- Check System Audio Recording access before mixing starts, so a missing grant cannot leave a tapped app silent. The panel asks for access with **Allow…**, or shows **Open Settings…** when it is off. Settings shows the current access status.
+- When macOS denies system audio access, the error banner shows an Open Settings button. Settings now states that Accessibility access is not needed.
+
 ## 0.5.6 — Preview
 
 - Reject Chrome captures that have ended or have no audio track, including captures ending while playback starts. Release their tracks and audio contexts.

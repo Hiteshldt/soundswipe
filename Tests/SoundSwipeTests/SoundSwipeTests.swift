@@ -107,12 +107,39 @@ struct SoundSwipeTests {
         #expect(LaunchArguments.value(after: "--settings", in: ["app"]) == nil)
         #expect(LaunchArguments.value(after: "--snapshot", in: ["app", "--snapshot", "/tmp/a b.png"]) == "/tmp/a b.png")
     }
-    @Test func testDSPRejectsSurroundOutputAndClearsBuffers() {
+    @Test func testDSPSurroundOutputUsesFrontPair() {
         let state = SWMixerCreate()!
         defer { SWMixerDestroy(state) }
-        let output = render(state, input: Array(repeating: 0.5, count: 12), outputChannels: 6)
+        let output = render(state, input: [0.25, -0.5, 0.125, -0.25], outputChannels: 6)
+        #expect(output == [0.25, -0.5, 0, 0, 0, 0, 0.125, -0.25, 0, 0, 0, 0])
+        #expect(!SWMixerFormatFailed(state))
+    }
+    @Test func testDSPMonoOutputDownmixesForHandsFreeBluetooth() {
+        let state = SWMixerCreate()!
+        defer { SWMixerDestroy(state) }
+        let output = render(state, input: [0.5, 0.25, -0.5, 0.1], outputChannels: 1)
+        #expect(output == [0.375, -0.2])
+        #expect(!SWMixerFormatFailed(state))
+        #expect(SWMixerPeak(state) == 0.375)
+    }
+    @Test func testDSPRejectsUnexpectedInputLayout() {
+        let state = SWMixerCreate()!
+        defer { SWMixerDestroy(state) }
+        let output = render(state, input: [0.5, 0.5, 0.5], inputChannels: 3)
         #expect(output.allSatisfy { $0 == 0 })
         #expect(SWMixerFormatFailed(state))
+    }
+    @Test func testRouteFormatAcceptsMonoAndMultichannelOutput() {
+        if #available(macOS 14.2, *) {
+            var format = AudioStreamBasicDescription(mSampleRate: 24000, mFormatID: kAudioFormatLinearPCM,
+                mFormatFlags: kAudioFormatFlagIsFloat | kAudioFormatFlagIsPacked, mBytesPerPacket: 4,
+                mFramesPerPacket: 1, mBytesPerFrame: 4, mChannelsPerFrame: 1, mBitsPerChannel: 32, mReserved: 0)
+            #expect(ProcessMixer.isFloatPCM(format))
+            #expect(ProcessMixer.outputChannels.contains(1))
+            format.mChannelsPerFrame = 8; format.mBytesPerFrame = 32; format.mBytesPerPacket = 32
+            #expect(!ProcessMixer.isFloatPCM(format))
+            #expect(ProcessMixer.isFloatPCM(format, maxChannels: ProcessMixer.outputChannels.upperBound))
+        }
     }
     @Test func testDSPBypassesEQAboveNyquistAndRestoresAtHigherRate() {
         let state = SWMixerCreate()!
@@ -163,12 +190,12 @@ struct SoundSwipeTests {
         #expect(output.allSatisfy { $0 >= 0 && $0 <= 1 })
         #expect(output[0] == output[1])
     }
-    @Test func testDSPRejectsMonoInputAndClearsOutput() {
+    @Test func testDSPMonoInputFeedsBothChannels() {
         let state = SWMixerCreate()!
         defer { SWMixerDestroy(state) }
-        let output = render(state, input: [0.5, 0.5], inputChannels: 1)
-        #expect(output == [0, 0])
-        #expect(SWMixerFormatFailed(state))
+        let output = render(state, input: [0.5, -0.25], inputChannels: 1)
+        #expect(output == [0.5, 0.5, -0.25, -0.25])
+        #expect(!SWMixerFormatFailed(state))
     }
     @Test func testBoostRangeAndMixingNeed() {
         var mix = AppMix()
@@ -295,7 +322,8 @@ struct SoundSwipeTests {
         #expect(AudioDevice.symbol(name: "LG TV", transport: kAudioDeviceTransportTypeHDMI, output: true) == "tv")
     }
     private func render(_ state: OpaquePointer, input: [Float], inputChannels: UInt32 = 2, outputChannels: UInt32 = 2) -> [Float] {
-        var source = input, result = [Float](repeating: 99, count: input.count)
+        let frames = input.count / Int(inputChannels)
+        var source = input, result = [Float](repeating: 99, count: frames * Int(outputChannels))
         source.withUnsafeMutableBytes { src in
             result.withUnsafeMutableBytes { dst in
                 var inputList = AudioBufferList(mNumberBuffers: 1, mBuffers: AudioBuffer(mNumberChannels: inputChannels, mDataByteSize: UInt32(src.count), mData: src.baseAddress))

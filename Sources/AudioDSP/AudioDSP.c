@@ -93,12 +93,14 @@ OSStatus SWMixerRender(AudioObjectID device, const AudioTimeStamp *now,
     SWMixer *m = context;
     for (UInt32 b = 0; b < output->mNumberBuffers; b++)
         if (output->mBuffers[b].mData) memset(output->mBuffers[b].mData, 0, output->mBuffers[b].mDataByteSize);
-    // Aggregate has no physical input channels: its only input is the stereo tap.
+    // Aggregate has no physical input channels: its only input is the stereo tap (mono is duplicated).
+    // Output may be mono (Bluetooth hands-free during calls), stereo, or multichannel, where
+    // stereo goes to the first two channels and the rest stay silent.
     if (!input->mNumberBuffers || !output->mNumberBuffers) return noErr;
     UInt32 inChannels = 0, outChannels = 0;
     for (UInt32 b = 0; b < input->mNumberBuffers; b++) inChannels += input->mBuffers[b].mNumberChannels;
     for (UInt32 b = 0; b < output->mNumberBuffers; b++) outChannels += output->mBuffers[b].mNumberChannels;
-    if (inChannels != 2 || outChannels != 2) { atomic_store(&m->failed, true); return noErr; }
+    if (inChannels < 1 || inChannels > 2 || outChannels < 1) { atomic_store(&m->failed, true); return noErr; }
     UInt32 frames = UINT32_MAX;
     for (UInt32 b = 0; b < input->mNumberBuffers; b++) {
         const AudioBuffer *a = &input->mBuffers[b];
@@ -124,19 +126,26 @@ OSStatus SWMixerRender(AudioObjectID device, const AudioTimeStamp *now,
         for (UInt32 b = 0; b < input->mNumberBuffers; b++) {
             const AudioBuffer *a = &input->mBuffers[b]; const float *samples = a->mData;
             for (UInt32 c = 0; c < a->mNumberChannels; c++, channel++) {
-                float s = samples[f * a->mNumberChannels + c]; if (!isfinite(s)) s = 0;
-                if (m->eqActive) s = filter(m, s, channel);
-                s *= m->current * side[channel];
-                if (shape) s = limit(s);
-                // Peak is measured after processing so meters show what is actually heard.
-                peak = fmaxf(peak, fabsf(s)); stereo[channel] = s;
+                const float s = samples[f * a->mNumberChannels + c];
+                stereo[channel] = isfinite(s) ? s : 0;
             }
         }
+        if (inChannels == 1) stereo[1] = stereo[0];
+        for (UInt32 c = 0; c < 2; c++) {
+            float s = stereo[c];
+            if (m->eqActive) s = filter(m, s, c);
+            s *= m->current * side[c];
+            if (shape) s = limit(s);
+            stereo[c] = s;
+        }
+        const float mono = 0.5f * (stereo[0] + stereo[1]);
+        // Peak is measured after processing so meters show what is actually heard.
+        peak = fmaxf(peak, outChannels == 1 ? fabsf(mono) : fmaxf(fabsf(stereo[0]), fabsf(stereo[1])));
         channel = 0;
         for (UInt32 b = 0; b < output->mNumberBuffers; b++) {
             AudioBuffer *a = &output->mBuffers[b]; float *samples = a->mData;
             for (UInt32 c = 0; c < a->mNumberChannels; c++, channel++)
-                if (channel < 2) samples[f * a->mNumberChannels + c] = stereo[channel];
+                if (channel < 2) samples[f * a->mNumberChannels + c] = outChannels == 1 ? mono : stereo[channel];
         }
     }
     unsigned old = atomic_load_explicit(&m->peakBits, memory_order_relaxed);

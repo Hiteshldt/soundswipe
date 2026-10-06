@@ -139,8 +139,21 @@ struct PanelView: View {
                     .toggleStyle(.switch).controlSize(.mini).font(.system(size: 11))
                     .help("Mixing applies per-app volume, EQ, and output. Turn off to restore normal audio instantly.")
             }
-            if !mixingLook && !audio.applications.isEmpty {
-                Text(audio.mixingNeedsRetry ? "Check audio access, then choose Retry or turn Mix on." : "Adjust any app to start mixing. System-audio access is required.")
+            if !mixingLook && (audio.audioAccess == .notDetermined || audio.audioAccess == .denied) {
+                HStack(spacing: 8) {
+                    Image(systemName: "lock.shield").foregroundStyle(.orange)
+                    Text(audio.audioAccess == .denied ? "System audio access is off. Per-app control needs it."
+                         : "Per-app control needs system audio access. Audio never leaves your Mac.")
+                        .font(.system(size: 11)).fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    Button(audio.audioAccess == .denied ? "Open Settings…" : "Allow…") {
+                        if audio.audioAccess == .denied { NSWorkspace.shared.open(AppInfo.audioAccessSettings) } else { audio.requestAccess() }
+                    }.controlSize(.small)
+                }
+            } else if !mixingLook && !audio.applications.isEmpty {
+                Text(audio.mixingNeedsAccess ? "Allow system audio access, then choose Retry or turn Mix on."
+                     : audio.mixingNeedsRetry ? "Check your output device, then choose Retry or turn Mix on."
+                     : "Adjust any app to start mixing. System-audio access is required.")
                     .font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -366,6 +379,9 @@ struct PanelView: View {
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
             Text(error).font(.system(size: 11)).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
+            if audio.mixingNeedsAccess {
+                Button("Open Settings…") { NSWorkspace.shared.open(AppInfo.audioAccessSettings) }.controlSize(.small)
+            }
             if audio.mixingNeedsRetry {
                 Button("Retry") { audio.setMixing(true) }.controlSize(.small)
             }

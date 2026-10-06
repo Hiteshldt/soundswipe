@@ -30,7 +30,7 @@ Unadjusted apps use their normal audio path. An adjustment creates a private tap
 
 Stop order is IOProc stop → IOProc destroy → aggregate destroy → tap destroy → C state free. Partially completed setup follows the same cleanup path. The tap’s conditional muting avoids permanently muting an app when the tap is not being read. Runtime errors stop all mixers and surface an actionable message. Hardware loss falls back to the default route if one exists. Process exit removes its mixer.
 
-System-level Core Audio permissions can return silent audio for restricted sources. A zero signal alone cannot distinguish silence from permission denial, so SoundSwipe does not claim that silence proves a healthy route.
+`AudioAccess.swift` checks and requests System Audio Recording access through the TCC calls (`TCCAccessPreflight`, `TCCAccessRequest`) before any tap is created, because macOS has no public API for it. If those calls are unavailable, the tap's own system prompt is the fallback. System-level Core Audio permissions can return silent audio for restricted sources. A zero signal alone cannot distinguish silence from permission denial, so SoundSwipe does not claim that silence proves a healthy route.
 
 ## Resource model
 

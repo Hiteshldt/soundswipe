@@ -24,6 +24,8 @@ struct SettingsView: View {
             about.tabItem { Label("About", systemImage: "info.circle") }.tag(2)
         }
         .frame(width: 500, height: 440)
+        .onAppear { audio.refreshAccess() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in audio.refreshAccess() }
         .onDisappear { endRecording() }
         .onChange(of: tab) { _, _ in endRecording() }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in
@@ -51,10 +53,14 @@ struct SettingsView: View {
                     Text("Clears every saved volume, EQ, balance, and output.")
                 }
                 LabeledContent {
-                    Button("Open…") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!) }
+                    if audio.audioAccess == .notDetermined {
+                        Button("Allow…") { audio.requestAccess() }
+                    } else {
+                        Button("Open…") { NSWorkspace.shared.open(AppInfo.audioAccessSettings) }
+                    }
                 } label: {
-                    Text("System audio access")
-                    Text("Required for per-app control. Audio never leaves your Mac.")
+                    Text("System audio access: \(accessStatus)")
+                    Text("Required for per-app control. Allow SoundSwipe under System Audio Recording Only. Accessibility access is not needed. Audio never leaves your Mac.")
                 }
             }
             if let message { Text(message).font(.callout).foregroundStyle(.orange) }
@@ -115,6 +121,14 @@ struct SettingsView: View {
         }.padding(24).frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    private var accessStatus: String {
+        switch audio.audioAccess {
+        case .granted: "Allowed"
+        case .denied: "Off"
+        case .notDetermined: "Not set up"
+        case .unavailable: "Asked when mixing starts"
+        }
+    }
     private func setLaunchAtLogin(_ value: Bool) {
         do {
             if value { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }

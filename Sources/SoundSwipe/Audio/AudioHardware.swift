@@ -4,6 +4,8 @@ import Foundation
 struct AudioFailure: LocalizedError {
     let operation: String
     let status: OSStatus
+    /// The system denied audio capture; the fix is in Privacy & Security, not the device.
+    var needsAccess = false
     var errorDescription: String? { "\(operation) failed (Core Audio \(status))." }
 }
 

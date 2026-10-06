@@ -99,6 +99,8 @@ enum LaunchArguments {
 
 enum AppInfo {
     static let support = URL(string: "https://ko-fi.com/hiteshgupta")!
+    /// Privacy & Security → Screen & System Audio Recording, which includes "System Audio Recording Only".
+    static let audioAccessSettings = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
     static var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev" }
     static var website: URL? {
         (Bundle.main.object(forInfoDictionaryKey: "DeveloperWebsite") as? String).flatMap(URL.init(string:)).flatMap { $0.scheme == "https" ? $0 : nil }

@@ -42,7 +42,7 @@ A ZIP is also available: unzip it and move the app to Applications. When updatin
 3. Use its output menu to pick a device or a 1× / 2× / 3× / 4× boost preset.
 4. Open the slider icon for EQ and balance.
 
-An existing app route stays active when its volume returns to 100%; turn Mix off to release it. If a permission or route attempt fails, further slider movements save your setting without retrying capture. Allow SoundSwipe in Privacy & Security, then click **Retry** or turn **Mix** on. If access keeps being requested after allowing it, quit all copies and open the installed app from Applications; ad-hoc preview signatures can require renewed approval after updates.
+An existing app route stays active when its volume returns to 100%; turn Mix off to release it. SoundSwipe checks system audio access before it starts mixing. The first time, it shows the macOS prompt; if access is off, the panel shows **Open Settings…**. Accessibility access is not needed: global shortcuts use registered hotkeys, and your Mac's volume keys keep controlling the real output device. If a permission or route attempt fails, further slider movements save your setting without retrying capture. Allow SoundSwipe in Privacy & Security, then click **Retry** or turn **Mix** on. If access keeps being requested after allowing it, quit all copies and open the installed app from Applications; ad-hoc preview signatures can require renewed approval after updates.
 
 Turn off **Mix** to restore normal app playback. Device volume and switching work without capture permission. Audio is processed locally and never recorded or uploaded.
 

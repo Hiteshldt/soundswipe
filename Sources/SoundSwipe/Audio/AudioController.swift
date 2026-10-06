@@ -24,6 +24,9 @@ final class AudioController: ObservableObject {
     @Published private(set) var mutedDevices: Set<AudioObjectID> = []
     @Published private(set) var mixingEnabled = false
     @Published private(set) var mixingNeedsRetry = false
+    /// The last failure was macOS denying audio capture, so the banner offers Privacy & Security.
+    @Published private(set) var mixingNeedsAccess = false
+    @Published private(set) var audioAccess = AudioAccess.current
     @Published private(set) var controlledApps: Set<String> = []
     @Published var error: String?
     let preferences: Preferences
@@ -36,6 +39,9 @@ final class AudioController: ObservableObject {
     private var routeFormats: [AudioObjectID: AudioRouteFormat] = [:]
     private var mixers: [String: ProcessMixer] = [:]
     private var healthTimer: Timer?
+    private var routeRetry: Task<Void, Never>?
+    private var routeRetried = false
+    private var accessRequestPending = false
     private var panelTimer: Timer?
     private var meterTimer: Timer?
     private var panelVisible = false
@@ -201,7 +207,17 @@ final class AudioController: ObservableObject {
     }
 
     func setMixing(_ enabled: Bool) {
-        if enabled { mixingNeedsRetry = false; error = nil }
+        if enabled {
+            // Check access before any tap mutes an app, so a missing grant cannot leave it silent.
+            refreshAccess()
+            switch audioAccess {
+            case .denied: showAccessError(); return
+            case .notDetermined: requestAccess(); return
+            case .granted, .unavailable: break
+            }
+            mixingNeedsRetry = false; mixingNeedsAccess = false; routeRetried = false; error = nil
+        }
+        else { routeRetry?.cancel(); routeRetry = nil }
         mixingEnabled = enabled
         if enabled {
             reconcileMixers()
@@ -254,20 +270,64 @@ final class AudioController: ObservableObject {
             mixers.removeValue(forKey: app.id)
             do { mixers[app.id] = try ProcessMixer(application: app, output: output, mix: mix) }
             catch {
-                self.error = error.localizedDescription + " Mixing has been stopped; original audio is restored. After checking access and your device, choose Retry."
+                let needsAccess = (error as? AudioFailure)?.needsAccess == true
+                // A Bluetooth profile switch (for example when a call takes the headset mic) briefly
+                // republishes the device. The app plays unprocessed meanwhile; try once more first.
+                // Bursts of change notifications during the switch keep postponing that one retry.
+                if !needsAccess && (!routeRetried || routeRetry != nil) { scheduleRouteRetry(); continue }
+                self.error = error.localizedDescription + (needsAccess
+                    ? " Mixing has been stopped; original audio is restored. Allow SoundSwipe, then choose Retry."
+                    : " Mixing has been stopped; original audio is restored. Check your output device, then choose Retry.")
                 mixingNeedsRetry = true
-                setMixing(false); return
+                setMixing(false)
+                mixingNeedsAccess = needsAccess
+                return
             }
         }
         let controlled = Set(mixers.keys)
         if controlled != controlledApps { controlledApps = controlled }
     }
 
+    func refreshAccess() {
+        let current = AudioAccess.current
+        if current != audioAccess { audioAccess = current }
+        if current == .granted && mixingNeedsAccess && !mixingEnabled { mixingNeedsAccess = false; error = nil }
+    }
+    /// Shows the macOS prompt once; a denied or dismissed prompt leaves the Settings link in the panel.
+    func requestAccess() {
+        guard !accessRequestPending else { return }
+        accessRequestPending = true
+        AudioAccess.request { [weak self] granted in
+            guard let self else { return }
+            self.accessRequestPending = false
+            self.refreshAccess()
+            if granted || self.audioAccess == .granted { self.setMixing(true) } else { self.showAccessError() }
+        }
+    }
+    private func showAccessError() {
+        if mixingEnabled { setMixing(false) }
+        error = "SoundSwipe needs System Audio Recording access to control individual apps. Turn on SoundSwipe under System Audio Recording Only, then choose Retry."
+        mixingNeedsRetry = true; mixingNeedsAccess = true
+    }
+
+    private func scheduleRouteRetry() {
+        routeRetried = true
+        routeRetry?.cancel()
+        routeRetry = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(1.5))
+            guard let self, !Task.isCancelled else { return }
+            self.routeRetry = nil
+            self.reconcileMixers()
+            // Still mixing means the retry worked; a later device change gets its own retry.
+            if self.mixingEnabled && self.routeRetry == nil { self.routeRetried = false }
+        }
+    }
+
     // MARK: Panel-only timers
 
     func setPanelVisible(_ visible: Bool) {
         panelVisible = visible
-        if visible { refresh() }
+        if visible { refreshAccess(); refresh() }
         updateTimers()
     }
     private func updateTimers() {
